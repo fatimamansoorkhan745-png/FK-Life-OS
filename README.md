@@ -4,7 +4,8 @@ A single-file personal life-management app — tasks, notes, goals, weekly revie
 with charts, and prayer times. No build step, no npm, no framework: everything
 (HTML, CSS, JavaScript) lives inline in one file.
 
-**Live app:** https://fatimamansoorkhan745-png.github.io/FK-Life-OS/
+**Live app:** hosted on Cloudflare Pages, behind a password. The address is a
+`*.pages.dev` link created when the Cloudflare project is set up.
 
 ## Files
 
@@ -12,7 +13,8 @@ with charts, and prayer times. No build step, no npm, no framework: everything
 | --- | --- |
 | `index.html` | The app. This is the file GitHub Pages serves as the front page. **Edit this one.** |
 | `lifeos.html` | An identical spare copy of the original, kept for reference. |
-| `.nojekyll` | Tells GitHub Pages to serve the files as-is. |
+| `functions/_middleware.js` | The password gate. Cloudflare runs this in front of every request. |
+| `.nojekyll` | Only matters if the site is ever served from GitHub Pages instead. |
 
 ## Where my data lives
 
@@ -36,9 +38,28 @@ Two things follow from that:
 
 Nothing else.
 
+## The password
+
+The password is not stored in this repository. It lives in two environment
+variables set in the Cloudflare dashboard, under
+**Settings -> Variables and Secrets**:
+
+| Variable | Meaning |
+| --- | --- |
+| `LIFEOS_USER` | Username to type. Optional; defaults to `fk`. |
+| `LIFEOS_PASSWORD` | Password to type. **The gate is off until this is set.** |
+
+To change the password, edit `LIFEOS_PASSWORD` in Cloudflare and redeploy. No
+code change is needed.
+
+Note what the password does and does not do. It stops other people opening the
+site. It does **not** encrypt anything, and it does **not** hide the app from
+someone holding your unlocked phone, because the data is already in that
+browser.
+
 ## Changing the app
 
-Edit `index.html` directly and push to `main`; GitHub Pages redeploys within a
+Edit `index.html` directly and push to `main`; Cloudflare Pages rebuilds within a
 minute or so. Then hard-refresh (Ctrl+Shift+R on a laptop, or a long press on
 the reload button on mobile) so you are not looking at the cached old version.
 
