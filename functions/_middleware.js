@@ -3,8 +3,8 @@
 // Cloudflare Pages runs this in front of every request, including the static
 // index.html, so nothing is served until the browser sends the right password.
 //
-// The password is NOT stored here. It comes from environment variables set in
-// the Cloudflare dashboard: Settings -> Variables and Secrets.
+// The password is NOT stored here. It comes from environment variables set on
+// the Cloudflare Pages project (Settings -> Variables and Secrets):
 //
 //   LIFEOS_USER      the username to type   (optional, defaults to "fk")
 //   LIFEOS_PASSWORD  the password to type   (required for the gate to switch on)
@@ -16,30 +16,48 @@ export async function onRequest(context) {
   const { request, env, next } = context;
 
   const expectedPassword = env.LIFEOS_PASSWORD;
-  if (!expectedPassword) return next();
-
-  const expectedUser = env.LIFEOS_USER || "fk";
-  const header = request.headers.get("Authorization") || "";
-
-  if (header.startsWith("Basic ")) {
-    const credentials = decodeCredentials(header.slice(6));
-    if (credentials) {
-      const userOk = equals(credentials.user, expectedUser);
-      const passOk = equals(credentials.password, expectedPassword);
-      // Both are compared before returning so a wrong username and a wrong
-      // password take the same amount of time to reject.
-      if (userOk && passOk) return next();
-    }
+  if (expectedPassword && !isAuthorized(request, env, expectedPassword)) {
+    return new Response("This site is private. A username and password are required.", {
+      status: 401,
+      headers: {
+        "WWW-Authenticate": 'Basic realm="Life OS", charset="UTF-8"',
+        "Cache-Control": "no-store",
+        "Content-Type": "text/plain; charset=utf-8",
+      },
+    });
   }
 
-  return new Response("This site is private. A username and password are required.", {
-    status: 401,
-    headers: {
-      "WWW-Authenticate": 'Basic realm="Life OS", charset="UTF-8"',
-      "Cache-Control": "no-store",
-      "Content-Type": "text/plain; charset=utf-8",
-    },
-  });
+  // The app probes /api/health on startup to find out whether a backend exists,
+  // and runs local-only when nothing answers. Pages serves index.html for paths
+  // it does not recognise, so without this the probe would download the entire
+  // app a second time on every single start, only for JSON parsing to fail.
+  // Answer /api/* with a real 404 so the app settles into local-only at once.
+  const { pathname } = new URL(request.url);
+  if (pathname === "/api" || pathname.startsWith("/api/")) {
+    return new Response(JSON.stringify({ error: "No backend is configured for this site." }), {
+      status: 404,
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "Cache-Control": "no-store",
+      },
+    });
+  }
+
+  return next();
+}
+
+function isAuthorized(request, env, expectedPassword) {
+  const header = request.headers.get("Authorization") || "";
+  if (!header.startsWith("Basic ")) return false;
+
+  const credentials = decodeCredentials(header.slice(6));
+  if (!credentials) return false;
+
+  // Both are compared before returning so that a wrong username and a wrong
+  // password take the same amount of time to reject.
+  const userOk = equals(credentials.user, env.LIFEOS_USER || "fk");
+  const passOk = equals(credentials.password, expectedPassword);
+  return userOk && passOk;
 }
 
 function decodeCredentials(encoded) {

@@ -4,8 +4,8 @@ A single-file personal life-management app — tasks, notes, goals, weekly revie
 with charts, and prayer times. No build step, no npm, no framework: everything
 (HTML, CSS, JavaScript) lives inline in one file.
 
-**Live app:** hosted on Cloudflare Pages, behind a password. The address is a
-`*.pages.dev` link created when the Cloudflare project is set up.
+**Live app:** https://fk-lifeos.pages.dev/ — hosted on Cloudflare Pages, behind
+a password.
 
 ## Files
 
@@ -15,6 +15,12 @@ with charts, and prayer times. No build step, no npm, no framework: everything
 | `lifeos.html` | An identical spare copy of the original, kept for reference. |
 | `functions/_middleware.js` | The password gate. Cloudflare runs this in front of every request. |
 | `.nojekyll` | Only matters if the site is ever served from GitHub Pages instead. |
+
+The Cloudflare Pages project is called `fk-lifeos`. It is a Direct Upload
+project, so it is not wired to this repository: pushing here does not deploy.
+A change goes live by uploading `index.html` and `functions/` again with
+Wrangler, using a Cloudflare API token that has Account -> Cloudflare Pages ->
+Edit permission.
 
 ## Where my data lives
 
@@ -59,8 +65,8 @@ browser.
 
 ## Changing the app
 
-Edit `index.html` directly and push to `main`; Cloudflare Pages rebuilds within a
-minute or so. Then hard-refresh (Ctrl+Shift+R on a laptop, or a long press on
+Edit `index.html` directly, push to `main` so the repository stays the source of
+truth, then redeploy to Cloudflare (see above). Then hard-refresh (Ctrl+Shift+R on a laptop, or a long press on
 the reload button on mobile) so you are not looking at the cached old version.
 
 House rules for changes:
