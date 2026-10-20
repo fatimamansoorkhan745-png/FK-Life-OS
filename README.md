@@ -13,6 +13,7 @@ a password.
 | --- | --- |
 | `index.html` | The app. This is the file GitHub Pages serves as the front page. **Edit this one.** |
 | `lifeos.html` | An identical spare copy of the original, kept for reference. |
+| `bloom/index.html` | **Fatima's Bloom**, a separate personal planner (see below). |
 | `functions/_middleware.js` | The password gate. Cloudflare runs this in front of every request. |
 | `.nojekyll` | Only matters if the site is ever served from GitHub Pages instead. |
 
@@ -21,6 +22,24 @@ project, so it is not wired to this repository: pushing here does not deploy.
 A change goes live by uploading `index.html` and `functions/` again with
 Wrangler, using a Cloudflare API token that has Account -> Cloudflare Pages ->
 Edit permission.
+
+## Fatima's Bloom
+
+`bloom/index.html` is a second, separate app: a weekly routine, food plan,
+journal, study notes, lists and Google Calendar view. It lives as a private
+artifact on claude.ai (https://claude.ai/artifact/G4VHsTSR2gLYaEL6sMZfmk), and
+this folder keeps a copy of its code under version control. It is the same kind
+of single file as Life OS: no build step, and everything is inline.
+
+- **Its data is separate from Life OS** and lives in the browser that is used to
+  open it. The claude.ai link and any other address count as different places,
+  so use *Download backup* in one and *Restore from backup* in the other to move
+  everything across.
+- **The live Google Calendar month view only works inside claude.ai.**
+  Anywhere else, the page says so and the *Quick add* form still works.
+- If the Cloudflare site is redeployed with this folder included, Bloom is served
+  at `/bloom/`, behind the same password.
+- When the artifact changes, copy the new version here so the two stay the same.
 
 ## Where my data lives
 
