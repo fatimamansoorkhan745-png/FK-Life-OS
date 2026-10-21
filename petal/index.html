@@ -1,6 +1,6 @@
-<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#c85f8e"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Petal Planner"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
 
-<title>Fatima's Bloom</title>
+<title>Petal Planner</title>
 <link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -98,6 +98,35 @@
   }
   .save-warning strong{ display:block; font-size:.95rem; margin-bottom:4px; }
 
+  /* sync state on the website: a small pill in the top corner */
+  .sync-status{
+    position:fixed; top:22px; right:16px; z-index:35; font-size:.72rem; padding:5px 11px; border-radius:14px;
+    background:rgba(255,255,255,.85); border:1px solid var(--line); color:var(--muted); max-width:calc(100vw - 90px);
+    box-shadow:0 2px 8px rgba(200,95,142,.12);
+  }
+  .sync-status.ok{ color:var(--sold); }
+  .sync-status.warn{ color:var(--urgent); border-color:var(--urgent); font-weight:600; }
+  .site-only{ display:none !important; }
+  body.site-mode .site-only{ display:block !important; }
+  .signout-link{ text-align:center; font-size:.76rem; color:var(--muted); margin:2px 0 14px; }
+
+  /* Google Calendar events shown inside each routine day */
+  .gcal-day-events{ margin-bottom:12px; }
+  .gcal-day-events:empty{ display:none; }
+  .gcal-day-events .gde-title{ font-size:.74rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:6px; }
+  .gcal-day-events .gde-item{
+    display:flex; gap:10px; align-items:baseline; font-size:.86rem; padding:6px 10px; margin-bottom:4px;
+    background:#eef4ff; border-left:3px solid #5b8def; border-radius:8px;
+  }
+  .gcal-day-events .gde-time{ flex-shrink:0; font-size:.74rem; color:var(--muted); min-width:46px; }
+  .gcal-count{ display:inline-block; margin-left:8px; font-size:.7rem; background:#eef4ff; color:#3b6fd8; padding:2px 8px; border-radius:12px; vertical-align:middle; font-family:'Quicksand',sans-serif; font-style:normal; }
+  .gcal-connect{
+    display:inline-block; margin-top:8px; padding:9px 18px; border-radius:20px; background:var(--accent-dark); color:#fff !important;
+    text-decoration:none; font-weight:600; font-size:.86rem;
+  }
+  .gcal-account{ font-size:.78rem; color:var(--muted); }
+  .gcal-account button{ background:none; border:none; color:var(--accent-dark); text-decoration:underline; cursor:pointer; font-family:inherit; font-size:.78rem; padding:0 4px; }
+
   /* "Removed — Undo" toast after anything is deleted or replaced */
   .undo-toast{
     position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:60; display:flex; align-items:center;
@@ -111,6 +140,11 @@
 
   main{ flex:1; padding:40px 48px 40px 96px; max-width:1000px; transition:padding .28s ease; position:relative; z-index:1; }
   main.expanded{ padding-left:48px; }
+  /* on a wide screen the open menu sits beside the page instead of covering its left side */
+  @media (min-width:1000px){
+    main{ padding-left:270px; }
+    main.expanded{ padding-left:96px; }
+  }
   @media (max-width:700px){
     main{ padding:70px 14px 40px 14px; }
     main.expanded{ padding-left:14px; }
@@ -464,9 +498,9 @@
         <ellipse cx="46" cy="30" rx="13" ry="9"/>
       </g>
       <circle cx="30" cy="30" r="9" fill="#fff6f9"/>
-      <text x="30" y="35" font-family="Playfair Display, serif" font-style="italic" font-size="14" fill="#c85f8e" text-anchor="middle">F</text>
+      <circle cx="30" cy="30" r="5" fill="#f4b6cf"/>
     </svg>
-    <div class="brand">Fatima's Bloom<span>Personal &middot; private</span></div>
+    <div class="brand">Petal Planner<span>Personal &middot; private</span></div>
   </div>
   <button class="nav-btn active" data-target="urgent">Urgent Tasks / Docs</button>
   <button class="nav-btn" data-target="routine">Weekly Routine</button>
@@ -477,12 +511,13 @@
   <button class="nav-btn" data-target="more">More</button>
   <div class="save-status" id="saveStatus"></div>
   <div class="backup-box">
-    <p>Everything you type here saves automatically in <strong>this browser only</strong>. Back it up so you don't lose it if you clear your browser or switch devices.</p>
+    <p id="backupNote">Everything you type here saves automatically in <strong>this browser only</strong>. Back it up so you don't lose it if you clear your browser or switch devices.</p>
     <div class="storage-meter" id="storageMeter"></div>
     <div class="last-backup" id="lastBackup"></div>
     <button id="exportBtn">Download backup</button>
     <label for="importFile">Restore from backup</label>
     <input type="file" id="importFile" accept="application/json">
+    <div class="signout-link site-only"><a href="/logout">Sign out of this device</a></div>
   </div>
 </nav>
 
@@ -672,6 +707,8 @@
 
 </main>
 
+<div class="sync-status" id="syncStatus" hidden></div>
+
 <div class="undo-toast" id="undoToast" hidden>
   <span class="undo-msg"></span>
   <button type="button" class="undo-btn">Undo</button>
@@ -693,6 +730,13 @@
   // Photos are shrunk to this before they're stored — plenty for reading notes on a phone, and
   // typically a tenth of the size of the original camera photo.
   const PHOTO_MAX_DIM = 1600, PHOTO_QUALITY = 0.8;
+  // Sync between devices, on the Petal Planner website only (see syncStart). Declared up here
+  // because save() runs during start-up, before the rest of the sync code is reached.
+  const SYNC_CHECK_MS = 15000;
+  const sync = {
+    enabled: false, version: null, base: undefined, pushTimer: 0, retryTimer: 0,
+    pushing: false, pushAgain: false, lastLocalEdit: 0
+  };
 
   function hourLabels(){
     const arr = [];
@@ -1218,6 +1262,22 @@
   })();
   // Second batch added 17 Oct 2026 (16:26): juice + winter hat at the end of the grocery list,
   // Greggs at the top of things to do
+  // Added 21 Oct 2026: Pepsi cans at the end of the urgent grocery list, and Lego for Abdullah in
+  // "Things To Buy — Abdullah" (top of the list, like items she adds herself)
+  (function seedOct21(){
+    const FLAG = STORE_KEY + ':seed-2026-10-21';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const has = (arr, t) => arr.some(it => (it.text||'').trim().toLowerCase() === t.toLowerCase());
+      if(!has(data.urgentGrocery, "Pepsi cans")) data.urgentGrocery.push({text: "Pepsi cans", done: false});
+      const kidsList = data.moreLists.find(l => (l.title||'').trim().toLowerCase() === "things to buy — abdullah");
+      if(kidsList){
+        const cat = kidsList.categories[0];
+        if(!has(cat.items, "Lego for children")) cat.items.unshift({text: "Lego for children", done: false, price: ''});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedOct17b(){
     const FLAG = STORE_KEY + ':seed-2026-10-17b';
     try{
@@ -1236,159 +1296,166 @@
     try{
       const raw = localStorage.getItem(STORE_KEY);
       if(!raw) return defaultData();
-      const saved = JSON.parse(raw);
-      const merged = defaultData();
-      if(Array.isArray(saved.urgent)) merged.urgent = saved.urgent;
-      if(Array.isArray(saved.urgentGrocery)) merged.urgentGrocery = saved.urgentGrocery;
-      if(Array.isArray(saved.thingsToDo)) merged.thingsToDo = saved.thingsToDo;
-      if(Array.isArray(saved.vintedItems)){
-        merged.vintedItems = saved.vintedItems.filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, posted: !!it.posted, sold: !!it.sold}));
-      }
-      if(Array.isArray(saved.journal)){
-        merged.journal = saved.journal.filter(e => e && typeof e === 'object').map(e => {
-          const entry = {dateISO: (typeof e.dateISO === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.dateISO)) ? e.dateISO : '', date: typeof e.date === 'string' ? e.date : ''};
-          if(e.image){ entry.image = safeImage(e.image); } else { entry.text = typeof e.text === 'string' ? e.text : ''; }
-          return entry;
-        }).filter(e => e.image !== '');
-      }
-      if(Array.isArray(saved.calendarLog)) merged.calendarLog = saved.calendarLog;
-      if(typeof saved.more === "string") merged.more = saved.more;
-      if(typeof saved.moreDrawing === "string") merged.moreDrawing = safeImage(saved.moreDrawing);
-      if(saved.recurring && typeof saved.recurring === "object"){
+      return normalizeSaved(JSON.parse(raw));
+    }catch(e){ return defaultData(); }
+  }
+  // Turns saved data (from this browser, a backup file, or another device via sync) into the
+  // current shape: fills anything missing, drops anything unsafe, runs the one-time upgrades.
+  // Throws if the data can't be read, rather than quietly starting from empty — synced or restored
+  // data that fails must never replace what's there.
+  function normalizeSaved(saved){
+    if(!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error("Not planner data");
+    const merged = defaultData();
+    if(Array.isArray(saved.urgent)) merged.urgent = saved.urgent;
+    if(Array.isArray(saved.urgentGrocery)) merged.urgentGrocery = saved.urgentGrocery;
+    if(Array.isArray(saved.thingsToDo)) merged.thingsToDo = saved.thingsToDo;
+    if(Array.isArray(saved.vintedItems)){
+      merged.vintedItems = saved.vintedItems.filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, posted: !!it.posted, sold: !!it.sold}));
+    }
+    if(Array.isArray(saved.journal)){
+      merged.journal = saved.journal.filter(e => e && typeof e === 'object').map(e => {
+        const entry = {dateISO: (typeof e.dateISO === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.dateISO)) ? e.dateISO : '', date: typeof e.date === 'string' ? e.date : ''};
+        if(e.image){ entry.image = safeImage(e.image); } else { entry.text = typeof e.text === 'string' ? e.text : ''; }
+        return entry;
+      }).filter(e => e.image !== '');
+    }
+    if(Array.isArray(saved.calendarLog)) merged.calendarLog = saved.calendarLog;
+    if(typeof saved.more === "string") merged.more = saved.more;
+    if(typeof saved.moreDrawing === "string") merged.moreDrawing = safeImage(saved.moreDrawing);
+    if(saved.recurring && typeof saved.recurring === "object"){
+      DAYS.forEach(d=>{
+        const rec = saved.recurring[d];
+        if(rec && typeof rec === "object") merged.recurring[d] = rec;
+      });
+    }
+    if(saved.routineWeeks && typeof saved.routineWeeks === "object"){
+      Object.keys(saved.routineWeeks).forEach(wk=>{
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return;
+        const oldWeek = saved.routineWeeks[wk];
+        if(!oldWeek || typeof oldWeek !== "object") return;
+        const week = merged.routineWeeks[wk] || emptyWeekRoutine();
         DAYS.forEach(d=>{
-          const rec = saved.recurring[d];
-          if(rec && typeof rec === "object") merged.recurring[d] = rec;
+          const old = oldWeek[d];
+          if(old && typeof old === "object"){
+            HOURS.forEach(h=>{
+              const val = old[h];
+              if(typeof val === "string") week[d][h] = val; // legacy string cell — split further down
+              else if(val && typeof val === "object") week[d][h] = { mama: val.mama || "", baby: val.baby || "" };
+            });
+            if(old._spans && typeof old._spans === "object") week[d]._spans = old._spans;
+            if(old._split && typeof old._split === "object") week[d]._split = old._split;
+            if(typeof old._drawing === "string") week[d]._drawing = safeImage(old._drawing);
+          }
         });
-      }
-      if(saved.routineWeeks && typeof saved.routineWeeks === "object"){
-        Object.keys(saved.routineWeeks).forEach(wk=>{
-          if(!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return;
-          const oldWeek = saved.routineWeeks[wk];
-          if(!oldWeek || typeof oldWeek !== "object") return;
-          const week = merged.routineWeeks[wk] || emptyWeekRoutine();
+        merged.routineWeeks[wk] = week;
+      });
+    } else if(saved.routine && typeof saved.routine === "object"){
+      // legacy single-template shape (pre-multi-week) — migrate into this week
+      const mondayISO = isoDate(mondayOfWeek(new Date()));
+      const week = merged.routineWeeks[mondayISO] || emptyWeekRoutine();
+      DAYS.forEach(d=>{
+        const old = saved.routine[d];
+        if(old && typeof old === "object"){
+          HOURS.forEach(h=>{ if(typeof old[h] === "string") week[d][h] = old[h]; });
+        } else if(typeof old === "string" && old.trim()){
+          week[d]["9:00 AM"] = old;
+        }
+      });
+      merged.routineWeeks[mondayISO] = week;
+    }
+    if(saved.food){
+      MEALS.forEach(m=>{
+        if(saved.food[m]){
           DAYS.forEach(d=>{
-            const old = oldWeek[d];
-            if(old && typeof old === "object"){
-              HOURS.forEach(h=>{
-                const val = old[h];
-                if(typeof val === "string") week[d][h] = val; // legacy string cell — split further down
-                else if(val && typeof val === "object") week[d][h] = { mama: val.mama || "", baby: val.baby || "" };
-              });
-              if(old._spans && typeof old._spans === "object") week[d]._spans = old._spans;
-              if(old._split && typeof old._split === "object") week[d]._split = old._split;
-              if(typeof old._drawing === "string") week[d]._drawing = safeImage(old._drawing);
+            const old = saved.food[m][d];
+            if(!old) return;
+            if(typeof old.FA === "string" || typeof old.AB === "string" || typeof old.FS === "string"){
+              // already the FA/AB/FS shape
+              merged.food[m][d].FA = old.FA || "";
+              merged.food[m][d].AB = old.AB || "";
+              merged.food[m][d].FS = old.FS || "";
+            } else {
+              // legacy {couple, baby} shape — carry her existing notes across, FS stays blank (seeded below)
+              merged.food[m][d].FA = old.couple || "";
+              merged.food[m][d].AB = old.baby || "";
+              merged.food[m][d].FS = "";
             }
           });
-          merged.routineWeeks[wk] = week;
-        });
-      } else if(saved.routine && typeof saved.routine === "object"){
-        // legacy single-template shape (pre-multi-week) — migrate into this week
-        const mondayISO = isoDate(mondayOfWeek(new Date()));
-        const week = merged.routineWeeks[mondayISO] || emptyWeekRoutine();
-        DAYS.forEach(d=>{
-          const old = saved.routine[d];
-          if(old && typeof old === "object"){
-            HOURS.forEach(h=>{ if(typeof old[h] === "string") week[d][h] = old[h]; });
-          } else if(typeof old === "string" && old.trim()){
-            week[d]["9:00 AM"] = old;
-          }
-        });
-        merged.routineWeeks[mondayISO] = week;
-      }
-      if(saved.food){
-        MEALS.forEach(m=>{
-          if(saved.food[m]){
-            DAYS.forEach(d=>{
-              const old = saved.food[m][d];
-              if(!old) return;
-              if(typeof old.FA === "string" || typeof old.AB === "string" || typeof old.FS === "string"){
-                // already the FA/AB/FS shape
-                merged.food[m][d].FA = old.FA || "";
-                merged.food[m][d].AB = old.AB || "";
-                merged.food[m][d].FS = old.FS || "";
-              } else {
-                // legacy {couple, baby} shape — carry her existing notes across, FS stays blank (seeded below)
-                merged.food[m][d].FA = old.couple || "";
-                merged.food[m][d].AB = old.baby || "";
-                merged.food[m][d].FS = "";
-              }
-            });
-          }
-        });
-      }
-      const priorFoodSeed = (typeof saved.foodSeedVersion === "number") ? saved.foodSeedVersion : 0;
-      if(priorFoodSeed < FOOD_SEED_VERSION){
-        DAYS.forEach(d=>{
-          if(!merged.food.Breakfast[d].FS || !merged.food.Breakfast[d].FS.trim()){
-            merged.food.Breakfast[d].FS = "Shake";
-          }
-        });
-      }
-      merged.foodSeedVersion = FOOD_SEED_VERSION;
-      if(Array.isArray(saved.prayerSeededWeeks)){
-        merged.prayerSeededWeeks = saved.prayerSeededWeeks.slice();
-      } else if(typeof saved.prayerSeedVersion === "number" && saved.prayerSeedVersion >= 1){
-        // legacy: the old fixed table had already been applied to this one week — don't re-append it
-        merged.prayerSeededWeeks = ["2026-08-31"];
-      } else {
-        merged.prayerSeededWeeks = [];
-      }
-      if(Array.isArray(saved.moreLists)){
-        merged.moreLists = saved.moreLists.filter(l => l && typeof l === 'object' && typeof l.title === 'string').map(l => ({
-          id: safeId(l.id, 'list'),
-          title: l.title,
-          calendarButtons: !!l.calendarButtons,
-          priceField: !!l.priceField,
-          categories: (Array.isArray(l.categories) && l.categories.length ? l.categories : [{name:'', items:[]}]).map(c => ({
-            name: (c && typeof c.name === 'string') ? c.name : '',
-            items: (c && Array.isArray(c.items) ? c.items : []).filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, done: !!it.done, price: (typeof it.price === 'string') ? it.price : ''}))
-          }))
-        }));
-      }
-      const priorMoreListsSeed = (typeof saved.moreListsSeedVersion === "number") ? saved.moreListsSeedVersion : 1;
-      if(priorMoreListsSeed < 2){
-        seedMoreListsV2(merged);
-      }
-      if(priorMoreListsSeed < 3){
-        seedMoreListsV3(merged);
-      }
-      if(priorMoreListsSeed < 4){
-        seedMoreListsV4(merged);
-      }
-      if(priorMoreListsSeed < 5){
-        seedMoreListsV5(merged);
-      }
-      merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
-      if(saved.study && Array.isArray(saved.study.topics)){
-        merged.study.topics = saved.study.topics.filter(t => t && typeof t.title === 'string').map(t => ({
-          id: safeId(t.id, 'topic'),
-          title: t.title,
-          notes: (Array.isArray(t.notes) ? t.notes : []).filter(n => n && typeof n.title === 'string').map(n => ({
-            id: safeId(n.id, 'note'),
-            title: n.title,
-            text: typeof n.text === 'string' ? n.text : '',
-            drawing: safeImage(n.drawing),
-            images: Array.isArray(n.images) ? n.images.map(safeImage).filter(Boolean) : []
-          }))
-        }));
-      }
-      const priorStudySeed = (typeof saved.studySeedVersion === "number") ? saved.studySeedVersion : 0;
-      if(priorStudySeed < STUDY_SEED_VERSION){
-        seedStudyV1(merged);
-      }
-      merged.studySeedVersion = STUDY_SEED_VERSION;
-      const priorSeedVersion = (typeof saved.toddlerSeedVersion === "number") ? saved.toddlerSeedVersion : 1;
-      if(priorSeedVersion < TODDLER_SEED_VERSION){
-        migrateToddlerRoutineV1toV2(merged);
-      }
-      merged.toddlerSeedVersion = TODDLER_SEED_VERSION;
-      const priorRoutineCellVersion = (typeof saved.routineCellVersion === "number") ? saved.routineCellVersion : 1;
-      if(priorRoutineCellVersion < ROUTINE_CELL_VERSION){
-        migrateRoutineCellsToSplit(merged);
-      }
-      merged.routineCellVersion = ROUTINE_CELL_VERSION;
-      return merged;
-    }catch(e){ return defaultData(); }
+        }
+      });
+    }
+    const priorFoodSeed = (typeof saved.foodSeedVersion === "number") ? saved.foodSeedVersion : 0;
+    if(priorFoodSeed < FOOD_SEED_VERSION){
+      DAYS.forEach(d=>{
+        if(!merged.food.Breakfast[d].FS || !merged.food.Breakfast[d].FS.trim()){
+          merged.food.Breakfast[d].FS = "Shake";
+        }
+      });
+    }
+    merged.foodSeedVersion = FOOD_SEED_VERSION;
+    if(Array.isArray(saved.prayerSeededWeeks)){
+      merged.prayerSeededWeeks = saved.prayerSeededWeeks.slice();
+    } else if(typeof saved.prayerSeedVersion === "number" && saved.prayerSeedVersion >= 1){
+      // legacy: the old fixed table had already been applied to this one week — don't re-append it
+      merged.prayerSeededWeeks = ["2026-08-31"];
+    } else {
+      merged.prayerSeededWeeks = [];
+    }
+    if(Array.isArray(saved.moreLists)){
+      merged.moreLists = saved.moreLists.filter(l => l && typeof l === 'object' && typeof l.title === 'string').map(l => ({
+        id: safeId(l.id, 'list'),
+        title: l.title,
+        calendarButtons: !!l.calendarButtons,
+        priceField: !!l.priceField,
+        categories: (Array.isArray(l.categories) && l.categories.length ? l.categories : [{name:'', items:[]}]).map(c => ({
+          name: (c && typeof c.name === 'string') ? c.name : '',
+          items: (c && Array.isArray(c.items) ? c.items : []).filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, done: !!it.done, price: (typeof it.price === 'string') ? it.price : ''}))
+        }))
+      }));
+    }
+    const priorMoreListsSeed = (typeof saved.moreListsSeedVersion === "number") ? saved.moreListsSeedVersion : 1;
+    if(priorMoreListsSeed < 2){
+      seedMoreListsV2(merged);
+    }
+    if(priorMoreListsSeed < 3){
+      seedMoreListsV3(merged);
+    }
+    if(priorMoreListsSeed < 4){
+      seedMoreListsV4(merged);
+    }
+    if(priorMoreListsSeed < 5){
+      seedMoreListsV5(merged);
+    }
+    merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
+    if(saved.study && Array.isArray(saved.study.topics)){
+      merged.study.topics = saved.study.topics.filter(t => t && typeof t.title === 'string').map(t => ({
+        id: safeId(t.id, 'topic'),
+        title: t.title,
+        notes: (Array.isArray(t.notes) ? t.notes : []).filter(n => n && typeof n.title === 'string').map(n => ({
+          id: safeId(n.id, 'note'),
+          title: n.title,
+          text: typeof n.text === 'string' ? n.text : '',
+          drawing: safeImage(n.drawing),
+          images: Array.isArray(n.images) ? n.images.map(safeImage).filter(Boolean) : []
+        }))
+      }));
+    }
+    const priorStudySeed = (typeof saved.studySeedVersion === "number") ? saved.studySeedVersion : 0;
+    if(priorStudySeed < STUDY_SEED_VERSION){
+      seedStudyV1(merged);
+    }
+    merged.studySeedVersion = STUDY_SEED_VERSION;
+    const priorSeedVersion = (typeof saved.toddlerSeedVersion === "number") ? saved.toddlerSeedVersion : 1;
+    if(priorSeedVersion < TODDLER_SEED_VERSION){
+      migrateToddlerRoutineV1toV2(merged);
+    }
+    merged.toddlerSeedVersion = TODDLER_SEED_VERSION;
+    const priorRoutineCellVersion = (typeof saved.routineCellVersion === "number") ? saved.routineCellVersion : 1;
+    if(priorRoutineCellVersion < ROUTINE_CELL_VERSION){
+      migrateRoutineCellsToSplit(merged);
+    }
+    merged.routineCellVersion = ROUTINE_CELL_VERSION;
+    return merged;
   }
 
   // A failed save (storage full, or storage blocked) used to throw silently, so later typing was
@@ -1399,12 +1466,16 @@
     try{
       localStorage.setItem(STORE_KEY, json);
     }catch(e){
-      document.getElementById('saveWarning').hidden = false;
-      status.textContent = "Not saved — storage full";
+      // on the website the server still gets the change, so it's safe there even when this
+      // browser's own storage is full
+      schedulePush();
+      document.getElementById('saveWarning').hidden = sync.enabled;
+      status.textContent = sync.enabled ? "Saved online (this device's storage is full)" : "Not saved — storage full";
       clearTimeout(save._t);
       updateStorageMeter(json.length);
       return false;
     }
+    schedulePush();
     document.getElementById('saveWarning').hidden = true;
     status.textContent = "Saved just now";
     clearTimeout(save._t);
@@ -1425,13 +1496,14 @@
     let at = 0;
     try{ at = Number(localStorage.getItem(LAST_BACKUP_KEY)) || 0; }catch(e){}
     if(!at){
-      el.textContent = "No backup downloaded yet — worth doing now.";
-      el.classList.add('overdue');
+      el.textContent = sync.enabled ? "No backup file yet (your data is also saved online)." : "No backup downloaded yet — worth doing now.";
+      el.classList.toggle('overdue', !sync.enabled);
       return;
     }
     const days = Math.floor((Date.now() - at) / 86400000);
     el.textContent = "Last backup: " + (days === 0 ? "today" : days === 1 ? "yesterday" : days + " days ago");
-    el.classList.toggle('overdue', days >= BACKUP_OVERDUE_DAYS);
+    // with sync the server already holds a copy, so a file backup is only nudged monthly
+    el.classList.toggle('overdue', days >= (sync.enabled ? 30 : BACKUP_OVERDUE_DAYS));
   }
 
   // Undo for anything deleted or replaced: snapshot everything first, make the change, then offer
@@ -1441,17 +1513,26 @@
     change();
     save();
     renderAll();
-    const toast = document.getElementById('undoToast');
-    toast.querySelector('.undo-msg').textContent = message;
-    toast.hidden = false;
-    clearTimeout(withUndo._t);
-    toast.querySelector('.undo-btn').onclick = ()=>{
+    showToast(message, "Undo", ()=>{
       data = JSON.parse(before);
-      toast.hidden = true;
-      clearTimeout(withUndo._t);
       save(); renderAll();
+    });
+  }
+  // A short message at the bottom of the screen, with an optional button (Undo, etc.)
+  function showToast(message, actionLabel, action){
+    const toast = document.getElementById('undoToast');
+    const btn = toast.querySelector('.undo-btn');
+    toast.querySelector('.undo-msg').textContent = message;
+    btn.hidden = !actionLabel;
+    btn.textContent = actionLabel || '';
+    btn.onclick = ()=>{
+      toast.hidden = true;
+      clearTimeout(showToast._t);
+      if(action) action();
     };
-    withUndo._t = setTimeout(()=>{ toast.hidden = true; }, 8000);
+    toast.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>{ toast.hidden = true; }, actionLabel ? 8000 : 4000);
   }
 
   // Shrinks a photo to PHOTO_MAX_DIM on its longest side as a JPEG, on a white background (JPEG has
@@ -1503,6 +1584,322 @@
     if(changed){ save(); renderStudy(); }
   }
 
+  // ---- Sync between devices (website only) ----
+  // On the Petal Planner website every change is also saved on the server, and each device checks
+  // for changes from the others every few seconds, so phone, tablet and laptop all show the same
+  // thing. Inside claude.ai there is no server: none of this switches on and the page works on its
+  // own as before. Without a connection, changes wait on the device and go up once it's back.
+  //
+  // Each device remembers the last copy it shared with the server ("base"). When both this
+  // device and another have changed things since then, the two sets of changes are merged by
+  // comparing each against that copy, down to single list items, so neither is lost; only if both
+  // changed the very same box does this device's version win.
+  function syncStatus(text, kind){
+    const el = document.getElementById('syncStatus');
+    el.textContent = text;
+    el.className = 'sync-status' + (kind ? ' ' + kind : '');
+    el.hidden = !text;
+  }
+  function idbOpen(){
+    if(!idbOpen._p){
+      idbOpen._p = new Promise((resolve, reject)=>{
+        const req = indexedDB.open('petal-sync', 1);
+        req.onupgradeneeded = ()=> req.result.createObjectStore('kv');
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> reject(req.error);
+      });
+    }
+    return idbOpen._p;
+  }
+  // the shared copy is kept in IndexedDB rather than localStorage, so it doesn't use up the
+  // space the planner itself needs there
+  async function idbGet(key){
+    try{
+      const db = await idbOpen();
+      return await new Promise(resolve=>{
+        const req = db.transaction('kv').objectStore('kv').get(key);
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> resolve(undefined);
+      });
+    }catch(e){ return undefined; }
+  }
+  async function idbSet(key, value){
+    try{
+      const db = await idbOpen();
+      await new Promise(resolve=>{
+        const tx = db.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(value, key);
+        tx.oncomplete = resolve; tx.onerror = resolve;
+      });
+    }catch(e){}
+  }
+  function deepEqual(a, b){
+    if(a === b) return true;
+    if(typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+    if(Array.isArray(a) !== Array.isArray(b)) return false;
+    if(Array.isArray(a)){
+      if(a.length !== b.length) return false;
+      for(let i = 0; i < a.length; i++) if(!deepEqual(a[i], b[i])) return false;
+      return true;
+    }
+    const ka = Object.keys(a), kb = Object.keys(b);
+    if(ka.length !== kb.length) return false;
+    for(const k of ka){
+      if(!Object.prototype.hasOwnProperty.call(b, k) || !deepEqual(a[k], b[k])) return false;
+    }
+    return true;
+  }
+  function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+  // What makes a list entry the same entry on both devices: its id where it has one (lists,
+  // study topics), otherwise its wording (tasks, grocery items), name (list sections) or title.
+  function itemKey(v){
+    if(isPlainObject(v)){
+      if(typeof v.id === 'string') return 'id:' + v.id;
+      if(typeof v.text === 'string') return 'text:' + (v.dateISO || '') + ':' + v.text;
+      if(typeof v.image === 'string') return 'image:' + (v.dateISO || '') + ':' + v.image.length + ':' + v.image.slice(-48);
+      if(typeof v.name === 'string') return 'name:' + v.name;
+      if(typeof v.title === 'string') return 'title:' + v.title + ':' + (v.date || '');
+      return 'json:' + JSON.stringify(v);
+    }
+    if(typeof v === 'string' && v.length > 200) return 'str:' + v.length + ':' + v.slice(-48);
+    return 'value:' + JSON.stringify(v);
+  }
+  // Merges two edited versions of a list entry by entry, so an item added on one device and a
+  // different item added or ticked on another both survive. Entries added on the other device go
+  // in at the same place they have there.
+  function mergeArrays(base, local, remote){
+    base = Array.isArray(base) ? base : [];
+    const keysOf = arr=>{
+      const seen = {};
+      return arr.map(v=>{ const k = itemKey(v); seen[k] = (seen[k] || 0) + 1; return k + '#' + seen[k]; });
+    };
+    const bk = keysOf(base), lk = keysOf(local), rk = keysOf(remote);
+    const baseMap = new Map(bk.map((k, i)=> [k, base[i]]));
+    const remoteMap = new Map(rk.map((k, i)=> [k, remote[i]]));
+    const localKeys = new Set(lk);
+    const out = [];
+    lk.forEach((k, i)=>{
+      const value = local[i];
+      if(remoteMap.has(k)){ out.push({k, v: merge3(baseMap.get(k), value, remoteMap.get(k))}); return; }
+      // gone on the other device: removed there, unless it's new or changed here
+      if(!baseMap.has(k) || !deepEqual(baseMap.get(k), value)) out.push({k, v: value});
+    });
+    rk.forEach((k, i)=>{
+      if(localKeys.has(k)) return;
+      const value = remote[i];
+      // gone here: removed here, unless it's new or changed on the other device
+      if(baseMap.has(k) && deepEqual(baseMap.get(k), value)) return;
+      let pos = 0;
+      for(let j = i - 1; j >= 0; j--){
+        const at = out.findIndex(o=> o.k === rk[j]);
+        if(at !== -1){ pos = at + 1; break; }
+      }
+      out.splice(pos, 0, {k, v: value});
+    });
+    return out.map(o=> o.v);
+  }
+  function merge3(base, local, remote){
+    if(deepEqual(local, remote)) return local;
+    if(base !== undefined && deepEqual(base, local)) return remote;
+    if(base !== undefined && deepEqual(base, remote)) return local;
+    if(Array.isArray(local) && Array.isArray(remote)) return mergeArrays(base, local, remote);
+    if(isPlainObject(local) && isPlainObject(remote)){
+      const b = isPlainObject(base) ? base : {};
+      const out = {};
+      new Set([...Object.keys(local), ...Object.keys(remote)]).forEach(k=>{
+        const inLocal = k in local, inRemote = k in remote;
+        if(inLocal && inRemote){ out[k] = merge3(b[k], local[k], remote[k]); return; }
+        // only on one side: either added there, or removed on the other side — removed wins
+        // unless it was changed again on the side that still has it
+        if(inLocal){ if(!(k in b) || !deepEqual(b[k], local[k])) out[k] = local[k]; return; }
+        if(!(k in b) || !deepEqual(b[k], remote[k])) out[k] = remote[k];
+      });
+      return out;
+    }
+    return local;
+  }
+  function plainCopy(value){ return JSON.parse(JSON.stringify(value)); }
+  function signedOut(){
+    syncStatus("Signed out — opening the sign-in page…", 'warn');
+    setTimeout(()=>{ location.href = '/login'; }, 800);
+  }
+  function syncProblem(){
+    syncStatus("Offline — changes are kept on this device and will sync when you're back online", 'warn');
+  }
+
+  async function syncStart(){
+    let res = null;
+    try{ res = await fetch('/api/data', {cache:'no-store', credentials:'same-origin'}); }catch(e){}
+    // The website marks every reply with an X-Petal-Planner header; anywhere else (claude.ai)
+    // there's no sync server. With no answer at all, the website's offline helper being active
+    // means this is the website opened without a connection.
+    const onSite = res
+      ? res.headers.get('X-Petal-Planner') === '1'
+      : !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+    if(!onSite) return;
+    sync.enabled = true;
+    document.body.classList.add('site-mode');
+    document.getElementById('backupNote').innerHTML = 'Everything you change here <strong>syncs to all your devices</strong> where you\'re signed in. A backup file is an extra copy, just in case.';
+    renderLastBackup();
+    registerServiceWorker();
+    document.addEventListener('input', ()=>{ sync.lastLocalEdit = Date.now(); }, true);
+    setInterval(()=>{ if(document.visibilityState === 'visible') syncPull(); }, SYNC_CHECK_MS);
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') syncPull(); });
+    window.addEventListener('online', ()=>{ syncPull(); schedulePush(0); });
+    const saved = await idbGet('base');
+    if(saved && typeof saved.json === 'string'){
+      try{ sync.base = JSON.parse(saved.json); sync.version = saved.version; }catch(e){ sync.base = undefined; }
+    }
+    if(!res){ syncProblem(); return; }
+    if(res.status === 401){ signedOut(); return; }
+    if(!res.ok){
+      syncStatus("Can't reach the planner's database — changes are kept on this device for now", 'warn');
+      return;
+    }
+    await applyRemote(await res.json());
+  }
+
+  // Takes a copy from the server, merges in this device's changes since the last shared copy,
+  // and shows the result. Anything the server doesn't have yet then goes up with the next push.
+  async function applyRemote(remote){
+    if(remote.data === null){
+      // the very first device: what's here becomes the shared copy
+      sync.version = remote.version;
+      sync.base = undefined;
+      schedulePush(0);
+      return;
+    }
+    const current = plainCopy(data);
+    // A device syncing for the first time takes the shared copy as it is; its own starter
+    // contents are left out rather than mixed in.
+    const merged = sync.base === undefined ? remote.data : merge3(sync.base, current, remote.data);
+    let next;
+    try{ next = normalizeSaved(plainCopy(merged)); }catch(e){
+      syncStatus("Couldn't read the copy from the server — nothing on this device was changed", 'warn');
+      return;
+    }
+    sync.version = remote.version;
+    sync.base = remote.data;
+    idbSet('base', {version: remote.version, json: JSON.stringify(remote.data)});
+    data = next;
+    applyRecurringToAllWeeks();
+    applyPrayerTimesToAllWeeks(data);
+    if(!deepEqual(plainCopy(data), current)){
+      renderAllKeepingFocus();
+      loadRoutineCalendarEvents();
+    }
+    save();
+    syncStatus('✓ Synced', 'ok');
+  }
+
+  function schedulePush(delay){
+    if(!sync.enabled) return;
+    clearTimeout(sync.pushTimer);
+    sync.pushTimer = setTimeout(syncPush, delay === undefined ? 1200 : delay);
+  }
+  async function syncPush(){
+    if(!sync.enabled || sync.version === null) return;
+    if(sync.pushing){ sync.pushAgain = true; return; }
+    const json = JSON.stringify(data);
+    const current = JSON.parse(json);
+    if(sync.base !== undefined && deepEqual(current, sync.base)){ syncStatus('✓ Synced', 'ok'); return; }
+    sync.pushing = true;
+    syncStatus('Syncing…');
+    let conflict = null;
+    try{
+      const res = await fetch('/api/data', {
+        method:'PUT', credentials:'same-origin',
+        headers:{'Content-Type':'application/json', 'X-Base-Version': String(sync.version)},
+        body: json
+      });
+      if(res.status === 401){ signedOut(); return; }
+      if(res.status === 409){
+        conflict = await res.json();
+      } else {
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const out = await res.json();
+        sync.version = out.version;
+        sync.base = current;
+        idbSet('base', {version: out.version, json});
+        syncStatus('✓ Synced', 'ok');
+      }
+    }catch(e){
+      syncProblem();
+      clearTimeout(sync.retryTimer);
+      sync.retryTimer = setTimeout(()=> schedulePush(0), 20000);
+    }finally{
+      sync.pushing = false;
+    }
+    // another device saved first: merge both sets of changes, which pushes the result
+    if(conflict) await applyRemote(conflict);
+    if(sync.pushAgain){ sync.pushAgain = false; schedulePush(0); }
+  }
+  async function syncPull(){
+    if(!sync.enabled || sync.pushing) return;
+    // leave the page alone while something is being typed; the next check catches up
+    if(Date.now() - sync.lastLocalEdit < 4000) return;
+    // until the first full copy has arrived (no connection at start-up), ask for the whole thing
+    const url = sync.version === null ? '/api/data' : '/api/data?have=' + sync.version;
+    let res;
+    try{ res = await fetch(url, {cache:'no-store', credentials:'same-origin'}); }catch(e){ syncProblem(); return; }
+    if(res.status === 401){ signedOut(); return; }
+    if(!res.ok){ syncProblem(); return; }
+    const remote = await res.json();
+    if(remote.unchanged){
+      if(sync.base === undefined || !deepEqual(plainCopy(data), sync.base)) schedulePush(0);
+      else syncStatus('✓ Synced', 'ok');
+      return;
+    }
+    if(sync.pushing) return;
+    await applyRemote(remote);
+  }
+
+  // Redraws everything after a change from another device, putting the cursor back where it was
+  // and keeping the scroll position, so the page doesn't jump about while it's being used.
+  function renderAllKeepingFocus(){
+    const el = document.activeElement;
+    let selector = null, selStart = null, selEnd = null;
+    if(el && el !== document.body && el.closest && el.closest('main')){
+      if(el.id){
+        selector = '#' + CSS.escape(el.id);
+      } else {
+        const attrs = [...el.attributes].filter(a => a.name.startsWith('data-')).map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
+        selector = el.tagName.toLowerCase() + (el.classList[0] ? '.' + CSS.escape(el.classList[0]) : '') + attrs;
+      }
+      try{ selStart = el.selectionStart; selEnd = el.selectionEnd; }catch(e){}
+    }
+    const scrollY = window.scrollY;
+    renderAll();
+    window.scrollTo(0, scrollY);
+    if(selector){
+      const again = document.querySelector(selector);
+      if(again){
+        again.focus({preventScroll: true});
+        try{ if(selStart !== null) again.setSelectionRange(selStart, selEnd); }catch(e){}
+      }
+    }
+  }
+
+  function registerServiceWorker(){
+    try{
+      if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    }catch(e){}
+  }
+
+  // Coming back from connecting Google Calendar lands on /?calendar=connected#calendar: open the
+  // Calendar tab and say how it went, then tidy the address.
+  function openTabFromAddress(){
+    const target = (location.hash || '').slice(1);
+    const btn = target && document.querySelector(`.nav-btn[data-target="${CSS.escape(target)}"]`);
+    if(btn) btn.click();
+    const result = new URLSearchParams(location.search).get('calendar');
+    const messages = {connected: "Google Calendar connected", cancelled: "Google Calendar wasn't connected", failed: "Couldn't connect Google Calendar — please try again"};
+    if(messages[result]) showToast(messages[result]);
+    if(location.search || location.hash){
+      try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    }
+  }
+
   // Only real embedded images are allowed into an <img src>, and only plain ids into attributes —
   // so a damaged or tampered backup file can't break the page or run code in it.
   function safeImage(src){
@@ -1529,6 +1926,8 @@
     const toggle = document.getElementById('sidebarToggle');
     if(nav.classList.contains('closed')) return;
     if(nav.contains(e.target) || toggle.contains(e.target)) return;
+    // on a wide screen the menu sits beside the page rather than over it, so it can stay open
+    if(window.innerWidth >= 1000) return;
     setSidebar(false);
   });
 
@@ -1713,16 +2112,21 @@
     const d = String(dateObj.getDate()).padStart(2,'0');
     return `${y}${m}${d}`;
   }
-  function openGCal(title, dateObj, startHHMM, durationMin){
-    const dstr = toDstr(dateObj);
+  // A Google Calendar "new event" page with everything filled in, for when there's no direct
+  // connection: inside claude.ai, or on the website before Google Calendar is connected.
+  function googleTemplateUrl(title, dateObj, startHHMM, durationMin){
     const [sh,sm] = startHHMM.split(':').map(Number);
-    const startTotal = sh*60+sm;
-    const endTotal = startTotal + (durationMin || 30);
-    const eh = Math.floor(endTotal/60)%24, em = endTotal%60;
-    const s = String(sh).padStart(2,'0')+String(sm).padStart(2,'0')+'00';
-    const e = String(eh).padStart(2,'0')+String(em).padStart(2,'0')+'00';
-    const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${dstr}T${s}/${dstr}T${e}`;
-    window.open(url, '_blank');
+    const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), sh, sm);
+    const endDate = new Date(startDate.getTime() + (durationMin || 30) * 60000);
+    const stamp = d => `${toDstr(d)}T${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}00`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${stamp(startDate)}/${stamp(endDate)}`;
+  }
+  function openGCal(title, dateObj, startHHMM, durationMin){
+    if(calSource === 'site'){
+      addEventViaSite(title, dateObj, startHHMM, durationMin);
+      return;
+    }
+    window.open(googleTemplateUrl(title, dateObj, startHHMM, durationMin), '_blank');
     data.calendarLog.unshift({title, date: dateObj.toDateString()});
     save(); renderCalLog();
   }
@@ -1755,6 +2159,7 @@
     applyPrayerTimesToWeek(data, nextKey);
     save();
     renderRoutine();
+    loadRoutineCalendarEvents();
   }
   // One hour's entry box for a given owner (mama = her own routine, baby = Abdullah's), plus its
   // own repeat/calendar controls. In "split" mode the box's owner is fixed to its position (left
@@ -1812,13 +2217,14 @@
         const card = document.createElement('div');
         card.className = 'collapse-card' + (openKeys.has(weekKey+'|'+day) ? ' open' : '');
         const tag = DAY_TAGS[day] ? `<span class="tag">${DAY_TAGS[day]}</span>` : "";
-        const dateLabel = `<span class="day-date">${shortDate(weekDates[day])}</span>`;
+        const dateLabel = `<span class="day-date">${shortDate(weekDates[day])}</span><span class="gcal-count" data-gcal-count="${isoDate(weekDates[day])}" hidden></span>`;
         card.innerHTML = `
           <div class="collapse-head" data-week="${weekKey}" data-day="${day}">
             <div><h2>${day}${dateLabel}</h2>${tag}</div>
             <span class="chev">&#9662;</span>
           </div>
           <div class="collapse-body" id="body-${weekKey}-${day}">
+            <div class="gcal-day-events" data-gcal-date="${isoDate(weekDates[day])}"></div>
             <div class="food-mini">
               <button class="food-mini-toggle">&#127869; Food for ${day}</button>
               <div class="food-mini-panel">
@@ -2055,15 +2461,18 @@
         openGCal(text, weekDates[day], hourTo24(hour), 60);
       });
     });
+    fillRoutineCalendarEvents();
   }
 
   // Food — collapsible meals with horizontal scroll of day boxes
   function renderFood(){
     const wrap = document.getElementById('foodList');
+    // keep open meals open when the tab is redrawn (e.g. after a change arrives from another device)
+    const openMeals = new Set([...wrap.querySelectorAll('.collapse-card.open .collapse-head')].map(h => h.dataset.meal));
     wrap.innerHTML = "";
     MEALS.forEach(meal=>{
       const card = document.createElement('div');
-      card.className = 'collapse-card';
+      card.className = 'collapse-card' + (openMeals.has(meal) ? ' open' : '');
       card.innerHTML = `
         <div class="collapse-head" data-meal="${meal}">
           <h2>${meal}</h2>
@@ -2843,7 +3252,7 @@
     const json = JSON.stringify(data, null, 2);
     const blob = new Blob([json], {type:'application/json'});
     const stamp = new Date().toISOString().slice(0,10);
-    const filename = `fatima-hub-backup-${stamp}.json`;
+    const filename = `petal-planner-backup-${stamp}.json`;
     if(!downloadsApi && window.claude && typeof window.claude.use === 'function'){
       try{ downloadsApi = await window.claude.use('downloads'); }catch(e){}
     }
@@ -2859,7 +3268,7 @@
     try{
       const file = new File([json], filename, {type:'application/json'});
       if(navigator.canShare && navigator.canShare({files:[file]}) && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
-        await navigator.share({files:[file], title:"Fatima's Bloom backup"});
+        await navigator.share({files:[file], title:"Petal Planner backup"});
         backupSaved();
         return;
       }
@@ -2888,19 +3297,9 @@
         alert("Couldn't read that file — make sure it's a backup downloaded from this page.");
         return;
       }
-      // load() reads from storage, so put the backup there just long enough to run it through the
-      // same checks and upgrades as normal, then put things back if it can't be stored at all
-      const previous = localStorage.getItem(STORE_KEY);
       let restored;
-      try{
-        localStorage.setItem(STORE_KEY, JSON.stringify(parsed));
-        restored = load();
-      }catch(err){
-        restored = null;
-      }
-      try{ if(previous !== null) localStorage.setItem(STORE_KEY, previous); }catch(err){}
-      if(!restored){
-        alert("That backup is too big for this browser's storage. Nothing has been changed.");
+      try{ restored = normalizeSaved(parsed); }catch(err){
+        alert("Couldn't read that file — make sure it's a backup downloaded from this page.");
         return;
       }
       withUndo("Backup restored", ()=>{ data = restored; });
@@ -2913,9 +3312,14 @@
     renderUrgent(); renderUrgentGrocery(); renderThingsToDo(); renderVinted(); renderRoutine(); renderFood(); renderJournal(); renderStudy(); renderCalLog(); renderMore(); renderMoreLists();
   }
 
-  // Live Google Calendar view — month grid + click-a-day detail, like the Google Calendar app
+  // Live Google Calendar view — month grid + click-a-day detail, like the Google Calendar app.
+  // The events come from one of two places: inside claude.ai, the Google Calendar connector;
+  // on the Petal Planner website, the site's own connection to Google (functions/api/calendar).
+  // On the website, adding an event puts it straight into Google Calendar too.
   let mcpApi = null;
+  let calSource = null; // 'mcp' | 'site' | null (no live calendar here)
   let calYear, calMonth, selectedDayKey, monthEvents = {};
+  let routineCalEvents = {}; // dateKey -> events, for the weeks shown in Weekly Routine
   function pad2(n){ return String(n).padStart(2,'0'); }
   function dateKey(y,m,d){ return `${y}-${pad2(m+1)}-${pad2(d)}`; }
   function renderGcalStatus(html){
@@ -2925,6 +3329,43 @@
     if(ev.start && ev.start.date && !ev.start.dateTime) return 'All day';
     if(ev.start && ev.start.dateTime) return new Date(ev.start.dateTime).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
     return '';
+  }
+  // Every day an event covers: an all-day event from the 3rd to the 5th shows on all three days.
+  function groupEventsByDay(events){
+    const byDay = {};
+    events.forEach(ev=>{
+      if(ev.start && ev.start.date && !ev.start.dateTime){
+        const first = new Date(ev.start.date + 'T00:00:00');
+        const last = ev.end && ev.end.date ? new Date(ev.end.date + 'T00:00:00') : new Date(first.getFullYear(), first.getMonth(), first.getDate()+1);
+        for(let d = new Date(first); d < last && (d - first) < 62*86400000; d.setDate(d.getDate()+1)){
+          (byDay[isoDate(d)] = byDay[isoDate(d)] || []).push(ev);
+        }
+      } else if(ev.start && ev.start.dateTime){
+        const key = isoDate(new Date(ev.start.dateTime));
+        (byDay[key] = byDay[key] || []).push(ev);
+      }
+    });
+    return byDay;
+  }
+  async function calListEvents(start, end){
+    if(calSource === 'mcp'){
+      const res = await mcpApi.callTool('Google Calendar', 'list_events', {
+        startTime: start.toISOString(), endTime: end.toISOString(), orderBy: 'startTime', pageSize: 250
+      });
+      return (res.payload && res.payload.events) || [];
+    }
+    if(calSource === 'site'){
+      const q = new URLSearchParams({timeMin: start.toISOString(), timeMax: end.toISOString()});
+      const res = await fetch('/api/calendar/events?' + q, {cache:'no-store', credentials:'same-origin'});
+      const body = await res.json().catch(()=>({}));
+      if(!res.ok){
+        const err = new Error(body.error || 'Calendar request failed');
+        err.code = body.needsReconnect ? 'site_reconnect' : 'site_error';
+        throw err;
+      }
+      return body.events || [];
+    }
+    return [];
   }
   function renderCalendarGrid(){
     const grid = document.getElementById('gcalGrid');
@@ -2952,6 +3393,8 @@
     grid.querySelectorAll('.gcal-cell[data-key]').forEach(btn=>{
       btn.addEventListener('click', ()=>{
         selectedDayKey = btn.dataset.key;
+        // picking a day also sets it as the date in "Quick add", ready to plan something on it
+        document.getElementById('calDate').value = selectedDayKey;
         renderCalendarGrid();
         renderDayDetail();
       });
@@ -2973,56 +3416,128 @@
       </div>
     `).join('');
   }
+  function calendarErrorMessage(err){
+    const code = err && err.code;
+    if(code === 'site_reconnect'){
+      return 'Google Calendar needs connecting again.<br><a class="gcal-connect" href="/api/calendar/connect">Connect Google Calendar</a>';
+    }
+    const fixes = {
+      needs_reauth: 'Your Google Calendar connection needs refreshing — reconnect it in claude.ai Settings → Connectors.',
+      server_not_connected: 'Google Calendar isn\'t connected — add it in claude.ai Settings → Connectors.',
+      selection_required: 'You have more than one Google Calendar connector — pick one when prompted, then reopen this page.',
+      not_granted: 'This page hasn\'t been given access to your connectors yet.',
+      blocked_by_policy: 'Your organization\'s settings block this connector here.',
+    };
+    return fixes[code] || 'Couldn\'t load your calendar right now — you can still use "Quick add" below.';
+  }
   async function fetchMonthEvents(){
-    if(!mcpApi) return;
+    if(!calSource){ renderCalendarGrid(); return; }
     const start = new Date(calYear, calMonth, 1);
     const end = new Date(calYear, calMonth + 1, 1);
     try{
-      const res = await mcpApi.callTool('Google Calendar', 'list_events', {
-        startTime: start.toISOString(), endTime: end.toISOString(), orderBy: 'startTime', pageSize: 250
-      });
-      const events = (res.payload && res.payload.events) || [];
-      monthEvents = {};
-      events.forEach(ev=>{
-        let key = null;
-        if(ev.start && ev.start.date && !ev.start.dateTime) key = ev.start.date;
-        else if(ev.start && ev.start.dateTime) key = ev.start.dateTime.slice(0, 10);
-        if(!key) return;
-        (monthEvents[key] = monthEvents[key] || []).push(ev);
-      });
-      renderGcalStatus('');
+      monthEvents = groupEventsByDay(await calListEvents(start, end));
+      renderGcalStatus(calSource === 'site' ? calendarAccountLine() : '');
       renderCalendarGrid();
       renderDayDetail();
     }catch(err){
-      const code = err && err.code;
-      const fixes = {
-        needs_reauth: 'Your Google Calendar connection needs refreshing — reconnect it in claude.ai Settings → Connectors.',
-        server_not_connected: 'Google Calendar isn\'t connected — add it in claude.ai Settings → Connectors.',
-        selection_required: 'You have more than one Google Calendar connector — pick one when prompted, then reopen this page.',
-        not_granted: 'This page hasn\'t been given access to your connectors yet.',
-        blocked_by_policy: 'Your organization\'s settings block this connector here.',
-      };
-      renderGcalStatus('<span class="gcal-fix">' + (fixes[code] || 'Couldn\'t load your calendar right now — you can still use "Quick add" below.') + '</span>');
+      renderGcalStatus('<span class="gcal-fix">' + calendarErrorMessage(err) + '</span>');
+      renderCalendarGrid();
     }
+  }
+  // Google Calendar events for the weeks shown in Weekly Routine, so each day shows what's
+  // already booked while planning it
+  async function loadRoutineCalendarEvents(){
+    if(!calSource) return;
+    const keys = visibleRoutineWeekKeys();
+    if(!keys.length) return;
+    const start = new Date(keys[0] + 'T00:00:00');
+    const lastMonday = new Date(keys[keys.length-1] + 'T00:00:00');
+    const end = new Date(lastMonday.getFullYear(), lastMonday.getMonth(), lastMonday.getDate()+7);
+    try{
+      routineCalEvents = groupEventsByDay(await calListEvents(start, end));
+      fillRoutineCalendarEvents();
+    }catch(e){}
+  }
+  function fillRoutineCalendarEvents(){
+    document.querySelectorAll('.gcal-day-events[data-gcal-date]').forEach(el=>{
+      const evs = routineCalEvents[el.dataset.gcalDate] || [];
+      el.innerHTML = evs.length ? '<div class="gde-title">On your Google Calendar</div>' + evs.map(ev =>
+        `<div class="gde-item"><span class="gde-time">${escapeHtml(fmtEventTimeOnly(ev))}</span><span>${escapeHtml(ev.summary || '(untitled event)')}</span></div>`
+      ).join('') : '';
+    });
+    document.querySelectorAll('.gcal-count[data-gcal-count]').forEach(el=>{
+      const n = (routineCalEvents[el.dataset.gcalCount] || []).length;
+      el.textContent = n ? `📅 ${n}` : '';
+      el.hidden = !n;
+    });
+  }
+  let calAccountEmail = '';
+  function calendarAccountLine(){
+    return `<span class="gcal-account">Connected${calAccountEmail ? ' to ' + escapeHtml(calAccountEmail) : ''} · events you add here go straight into Google Calendar <button type="button" onclick="disconnectGoogleCalendar()">Disconnect</button></span>`;
+  }
+  async function disconnectGoogleCalendar(){
+    try{ await fetch('/api/calendar/disconnect', {method:'POST', credentials:'same-origin'}); }catch(e){}
+    calSource = null; monthEvents = {}; routineCalEvents = {};
+    fillRoutineCalendarEvents();
+    renderGcalStatus('<span class="gcal-fix">Google Calendar disconnected.</span><br><a class="gcal-connect" href="/api/calendar/connect">Connect Google Calendar</a>');
+    renderCalendarGrid(); renderDayDetail();
   }
   function gcalPrevMonth(){ calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } fetchMonthEvents(); }
   function gcalNextMonth(){ calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } fetchMonthEvents(); }
-  (async function initGoogleCalendar(){
+  async function initGoogleCalendar(){
+    const now = new Date();
+    calYear = now.getFullYear(); calMonth = now.getMonth();
+    selectedDayKey = dateKey(calYear, calMonth, now.getDate());
     try{
       if(window.claude && typeof window.claude.use === 'function'){
         mcpApi = await window.claude.use('mcp');
       }
     }catch(e){ mcpApi = null; }
-    const now = new Date();
-    calYear = now.getFullYear(); calMonth = now.getMonth();
-    selectedDayKey = dateKey(calYear, calMonth, now.getDate());
-    if(!mcpApi){
-      renderGcalStatus('<span class="gcal-fix">Live calendar view isn\'t available in this view — use "Quick add" below, or open the page from claude.ai directly.</span>');
-      renderCalendarGrid();
-      return;
+    if(mcpApi){
+      calSource = 'mcp';
+    } else {
+      let status = null;
+      try{
+        const res = await fetch('/api/calendar/status', {cache:'no-store', credentials:'same-origin'});
+        if(res.headers.get('X-Petal-Planner') === '1' && res.ok) status = await res.json();
+      }catch(e){}
+      if(status && status.connected){
+        calSource = 'site';
+        calAccountEmail = status.email || '';
+      } else if(status && status.configured){
+        renderGcalStatus('<span class="gcal-fix">See your Google Calendar here, and send things you plan straight into it.</span><br><a class="gcal-connect" href="/api/calendar/connect">Connect Google Calendar</a>');
+      } else if(status){
+        renderGcalStatus('<span class="gcal-fix">Google Calendar hasn\'t been set up for this website yet (see the setup steps in the README). "Quick add" below still works.</span>');
+      } else {
+        renderGcalStatus('<span class="gcal-fix">Live calendar view isn\'t available in this view — use "Quick add" below, or open the page from claude.ai directly.</span>');
+      }
     }
-    fetchMonthEvents();
-  })();
+    await fetchMonthEvents();
+    loadRoutineCalendarEvents();
+  }
+  // add an event straight into Google Calendar through the website's connection
+  async function addEventViaSite(title, dateObj, startHHMM, durationMin){
+    const [sh, sm] = startHHMM.split(':').map(Number);
+    const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), sh, sm);
+    const endDate = new Date(startDate.getTime() + (durationMin || 30) * 60000);
+    const local = d => `${isoDate(d)}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:00`;
+    const templateUrl = googleTemplateUrl(title, dateObj, startHHMM, durationMin);
+    try{
+      const res = await fetch('/api/calendar/events', {
+        method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({summary: title, start: local(startDate), end: local(endDate),
+          timeZone: (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London')})
+      });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      data.calendarLog.unshift({title, date: dateObj.toDateString()});
+      save(); renderCalLog();
+      showToast(`Added to Google Calendar: ${startDate.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'})}, ${local(startDate).slice(11,16)}`);
+      fetchMonthEvents();
+      loadRoutineCalendarEvents();
+    }catch(e){
+      showToast("Couldn't add it to Google Calendar.", "Open Google Calendar", ()=> window.open(templateUrl, '_blank'));
+    }
+  }
 
   (function initFlowers(){
     const layer = document.getElementById('flowerLayer');
@@ -3050,6 +3565,9 @@
   renderAll();
   renderLastBackup();
   shrinkStoredPhotos();
+  initGoogleCalendar();
+  syncStart();
+  openTabFromAddress();
   // ask the browser to keep this page's storage rather than clearing it to free up space
   try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
 </script>
