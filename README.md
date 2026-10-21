@@ -13,6 +13,7 @@ a password.
 | --- | --- |
 | `index.html` | The app. This is the file GitHub Pages serves as the front page. **Edit this one.** |
 | `lifeos.html` | An identical spare copy of the original, kept for reference. |
+| `petal/` | **Petal Planner**, a separate personal planner with its own website (see below). |
 | `functions/_middleware.js` | The password gate. Cloudflare runs this in front of every request. |
 | `.nojekyll` | Only matters if the site is ever served from GitHub Pages instead. |
 
@@ -21,6 +22,56 @@ project, so it is not wired to this repository: pushing here does not deploy.
 A change goes live by uploading `index.html` and `functions/` again with
 Wrangler, using a Cloudflare API token that has Account -> Cloudflare Pages ->
 Edit permission.
+
+## Petal Planner
+
+`petal/` is a second, separate app: a weekly routine, food plan, journal, study
+notes, lists and Google Calendar, which used to be called Fatima's Bloom. The
+same `petal/index.html` runs in two places:
+
+- **Inside claude.ai**, as a private artifact
+  (https://claude.ai/artifact/G4VHsTSR2gLYaEL6sMZfmk). There, data stays in
+  that browser, and the calendar comes from the claude.ai Google Calendar
+  connector.
+- **As its own website** on Cloudflare Pages, behind a password. There,
+  everything syncs between phone, tablet and laptop, and Google Calendar is
+  connected directly (events show in the Calendar tab and in each Weekly Routine
+  day, and anything added from the planner goes straight into Google Calendar).
+  The page notices the site by the `X-Petal-Planner` header the site puts on
+  every reply, and only switches sync on there.
+
+| File | What it is |
+| --- | --- |
+| `petal/index.html` | The app. |
+| `petal/functions/_middleware.js` | Sign-in page and password check for the whole site. |
+| `petal/functions/api/data.js` | Sync: the shared copy of the planner data. |
+| `petal/functions/api/calendar/[[path]].js` | Google Calendar connection. |
+| `petal/functions/_shared/db.js` | Database helpers. Tables are created automatically. |
+| `petal/sw.js` | Lets the app open with no signal. |
+| `petal/manifest.webmanifest`, `petal/icon*` | Home-screen name and icon. |
+
+Step-by-step setup is in [`petal/SETUP.md`](petal/SETUP.md).
+
+How sync works: every device keeps working from its own copy and sends changes
+about a second after they are made. It checks for other devices' changes every
+15 seconds, and whenever the app is brought back on screen. If two devices
+changed things in between, the changes are merged against the last shared copy
+item by item, so both are kept. Only when both changed the very same box does
+the newer one win. Data is stored in Cloudflare D1, in the user's own
+Cloudflare account.
+
+Settings on the Pages project:
+
+| Setting | Meaning |
+| --- | --- |
+| D1 binding `DB` | The database. Required. |
+| `PETAL_PASSWORD` (secret) | The password. Required: without it the site stays locked. Changing it signs every device out. |
+| `GOOGLE_CLIENT_ID` | From Google Cloud. Optional: only for Google Calendar. |
+| `GOOGLE_CLIENT_SECRET` (secret) | From Google Cloud. Optional: only for Google Calendar. |
+
+To test locally: run `npx wrangler pages dev . --d1 DB=petal --binding PETAL_PASSWORD=test`
+from inside `petal/`. `GOOGLE_AUTH_URL`, `GOOGLE_TOKEN_URL` and
+`GOOGLE_API_URL` can point the calendar at a stand-in server.
 
 ## Where my data lives
 

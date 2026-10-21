@@ -1,0 +1,3577 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#c85f8e"><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/icon.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icon-180.png"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="Petal Planner"><meta name="apple-mobile-web-app-status-bar-style" content="default"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+
+<title>Petal Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@400;500;600;700&family=Playfair+Display:ital@1&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fff6f9; --panel:#ffffff; --ink:#3f2333; --muted:#8a6076;
+    --accent:#e392b2; --accent-dark:#c85f8e; --accent-soft:#fbe2ec; --line:#f0d3e0;
+    --urgent:#c8517f; --urgent-soft:#fbe2ec; --ok:#c76e97;
+    --baby:#d9a520; --baby-dark:#9c7712; --baby-soft:#fdf3d4;
+    --sold:#5e9c6f; --sold-soft:#e2f0e4;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:'Quicksand',-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    background:linear-gradient(160deg,#fff6f9 0%,#ffeef5 100%); color:var(--ink); display:flex; min-height:100vh;
+    position:relative; overflow-x:hidden;
+  }
+  h1,h2{ font-family:'Playfair Display',serif; font-style:italic; font-weight:400; }
+
+  /* animated scenery background */
+  #sceneLayer{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
+  .cloud{
+    position:absolute; background:#fff; border-radius:50%; opacity:.55; filter:blur(1px);
+    box-shadow:40px 6px 0 -6px #fff, 80px 0 0 -10px #fff, -40px 8px 0 -8px #fff;
+    animation:driftX linear infinite;
+  }
+  @keyframes driftX{
+    0%{ transform:translateX(-15vw); }
+    100%{ transform:translateX(115vw); }
+  }
+  .river{
+    position:absolute; left:0; right:0; bottom:0; height:64px;
+    background:linear-gradient(90deg, #cfe8f2, #eaf6fa, #cfe8f2, #eaf6fa);
+    background-size:200% 100%; opacity:.45;
+    animation:flow 14s linear infinite;
+    -webkit-mask-image:linear-gradient(to top, black, transparent);
+    mask-image:linear-gradient(to top, black, transparent);
+  }
+  @keyframes flow{ 0%{ background-position:0 0; } 100%{ background-position:200% 0; } }
+  #flowerLayer span{
+    position:absolute; top:-60px; font-size:1.6rem; opacity:.3;
+    animation:floatDown linear infinite;
+  }
+  @keyframes floatDown{
+    0%{ transform:translateY(-10vh) translateX(0) rotate(0deg); }
+    50%{ transform:translateY(50vh) translateX(30px) rotate(180deg); }
+    100%{ transform:translateY(110vh) translateX(-20px) rotate(360deg); }
+  }
+
+  /* Sidebar + toggle */
+  #sidebarToggle{
+    position:fixed; top:18px; left:18px; z-index:40; width:42px; height:42px; border-radius:50%;
+    background:var(--accent-dark); color:#fff; border:none; cursor:pointer; font-size:1.1rem;
+    box-shadow:0 4px 12px rgba(200,95,142,.4); display:flex; align-items:center; justify-content:center;
+    transition:left .28s ease;
+  }
+  nav{
+    width:230px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--line);
+    padding:28px 0; position:fixed; top:0; left:0; height:100vh; overflow-y:auto; z-index:30;
+    box-shadow:2px 0 16px rgba(200,95,142,.1);
+    transform:translateX(0); transition:transform .28s ease;
+  }
+  nav.closed{ transform:translateX(-100%); }
+  .logo-wrap{ display:flex; align-items:center; gap:10px; padding:0 22px 10px 66px; }
+  .logo-wrap svg{ flex-shrink:0; }
+  nav .brand{ font-weight:700; font-size:1.05rem; color:var(--accent-dark); line-height:1.15; }
+  nav .brand span{ display:block; font-weight:400; font-size:.74rem; color:var(--muted); margin-top:2px;}
+  nav button.nav-btn{
+    display:block; width:100%; text-align:left; padding:11px 22px; background:none; border:none;
+    font-size:.92rem; color:var(--ink); cursor:pointer; border-left:3px solid transparent; margin-top:10px;
+    font-family:inherit;
+  }
+  nav button.nav-btn:hover{ background:var(--accent-soft); }
+  nav button.nav-btn.active{ background:var(--accent-soft); border-left:3px solid var(--accent-dark); font-weight:700; color:var(--accent-dark); }
+  .save-status{ padding:14px 22px 0; font-size:.74rem; color:var(--ok); min-height:16px; }
+  .backup-box{ padding:16px 22px 0; margin-top:10px; border-top:1px solid var(--line); }
+  .backup-box p{ font-size:.72rem; color:var(--muted); margin:10px 0 8px; line-height:1.4; }
+  .backup-box button, .backup-box label{
+    display:block; width:100%; text-align:center; font-size:.78rem; padding:8px 10px; margin-bottom:8px;
+    border:1px solid var(--line); background:#fffbfc; border-radius:20px; cursor:pointer; color:var(--accent-dark);
+    font-family:inherit;
+  }
+  .backup-box input[type=file]{ display:none; }
+  .storage-meter{ font-size:.72rem; color:var(--muted); margin:2px 0 6px; line-height:1.4; }
+  .storage-bar{ height:6px; border-radius:6px; background:var(--accent-soft); overflow:hidden; margin:4px 0 2px; }
+  .storage-bar span{ display:block; height:100%; width:0; background:var(--accent-dark); transition:width .3s ease; }
+  .storage-meter.full .storage-bar span{ background:var(--urgent); }
+  .storage-meter.full{ color:var(--urgent); font-weight:600; }
+  .last-backup{ font-size:.72rem; color:var(--muted); margin:0 0 10px; line-height:1.4; }
+  .last-backup.overdue{ color:var(--urgent); font-weight:600; }
+
+  /* shown at the top of the page whenever the browser refuses to save (storage full) — stays
+     until a save succeeds again, so nothing is ever lost silently */
+  .save-warning{
+    background:#fff0f3; border:2px solid var(--urgent); color:var(--urgent); border-radius:14px;
+    padding:14px 18px; font-size:.86rem; margin-bottom:20px; line-height:1.45;
+  }
+  .save-warning strong{ display:block; font-size:.95rem; margin-bottom:4px; }
+
+  /* sync state on the website: a small pill in the top corner */
+  .sync-status{
+    position:fixed; top:22px; right:16px; z-index:35; font-size:.72rem; padding:5px 11px; border-radius:14px;
+    background:rgba(255,255,255,.85); border:1px solid var(--line); color:var(--muted); max-width:calc(100vw - 90px);
+    box-shadow:0 2px 8px rgba(200,95,142,.12);
+  }
+  .sync-status.ok{ color:var(--sold); }
+  .sync-status.warn{ color:var(--urgent); border-color:var(--urgent); font-weight:600; }
+  .site-only{ display:none !important; }
+  body.site-mode .site-only{ display:block !important; }
+  .signout-link{ text-align:center; font-size:.76rem; color:var(--muted); margin:2px 0 14px; }
+
+  /* Google Calendar events shown inside each routine day */
+  .gcal-day-events{ margin-bottom:12px; }
+  .gcal-day-events:empty{ display:none; }
+  .gcal-day-events .gde-title{ font-size:.74rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-bottom:6px; }
+  .gcal-day-events .gde-item{
+    display:flex; gap:10px; align-items:baseline; font-size:.86rem; padding:6px 10px; margin-bottom:4px;
+    background:#eef4ff; border-left:3px solid #5b8def; border-radius:8px;
+  }
+  .gcal-day-events .gde-time{ flex-shrink:0; font-size:.74rem; color:var(--muted); min-width:46px; }
+  .gcal-count{ display:inline-block; margin-left:8px; font-size:.7rem; background:#eef4ff; color:#3b6fd8; padding:2px 8px; border-radius:12px; vertical-align:middle; font-family:'Quicksand',sans-serif; font-style:normal; }
+  .gcal-connect{
+    display:inline-block; margin-top:8px; padding:9px 18px; border-radius:20px; background:var(--accent-dark); color:#fff !important;
+    text-decoration:none; font-weight:600; font-size:.86rem;
+  }
+  .gcal-account{ font-size:.78rem; color:var(--muted); }
+  .gcal-account button{ background:none; border:none; color:var(--accent-dark); text-decoration:underline; cursor:pointer; font-family:inherit; font-size:.78rem; padding:0 4px; }
+
+  /* "Removed — Undo" toast after anything is deleted or replaced */
+  .undo-toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%); z-index:60; display:flex; align-items:center;
+    gap:14px; background:var(--ink); color:#fff; border-radius:24px; padding:10px 12px 10px 18px;
+    box-shadow:0 6px 22px rgba(63,35,51,.35); font-size:.86rem; max-width:calc(100vw - 32px);
+  }
+  .undo-toast button{
+    border:none; background:var(--accent); color:#fff; border-radius:16px; padding:6px 14px; font-family:inherit;
+    font-size:.82rem; font-weight:700; cursor:pointer; flex-shrink:0;
+  }
+
+  main{ flex:1; padding:40px 48px 40px 96px; max-width:1000px; transition:padding .28s ease; position:relative; z-index:1; }
+  main.expanded{ padding-left:48px; }
+  /* on a wide screen the open menu sits beside the page instead of covering its left side */
+  @media (min-width:1000px){
+    main{ padding-left:270px; }
+    main.expanded{ padding-left:96px; }
+  }
+  @media (max-width:700px){
+    main{ padding:70px 14px 40px 14px; }
+    main.expanded{ padding-left:14px; }
+    .card{ padding:16px 16px; }
+    .collapse-head{ padding:14px 16px; }
+    .collapse-body{ padding:14px 16px; }
+  }
+  .sub{ color:var(--muted); font-size:.9rem; margin-bottom:24px; }
+  section{ display:none; }
+  section.active{ display:block; }
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:18px;
+    padding:22px 26px; margin-bottom:20px; box-shadow:0 4px 18px rgba(200,95,142,.1);
+  }
+  .card h2{ font-size:1.15rem; margin:0 0 6px; color:var(--accent-dark); }
+  .card h3{ font-family:inherit; font-style:normal; font-size:.85rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:14px 0 8px; }
+  .card h3:first-of-type{ margin-top:2px; }
+  .urgent-card{ background:var(--urgent-soft); border-color:#f2b9d1; }
+  .urgent-card h2{ color:var(--urgent); }
+  textarea, input[type=text]{
+    width:100%; max-width:100%; border:1px solid var(--line); border-radius:14px; padding:10px 14px;
+    font-family:inherit; font-size:.9rem; color:var(--ink); resize:both; background:#fffdfe;
+  }
+  textarea:focus, input:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-soft); border-color:var(--accent-dark); }
+  a{ color:var(--accent-dark); }
+  .footnote{ margin-top:28px; font-size:.82rem; color:var(--muted); border-top:1px solid var(--line); padding-top:14px; }
+
+  /* Collapsible day / meal cards */
+  .collapse-card{ margin-bottom:16px; }
+  .collapse-head{
+    display:flex; justify-content:space-between; align-items:center; cursor:pointer;
+    padding:16px 22px; background:var(--panel); border:1px solid var(--line); border-radius:16px;
+    box-shadow:0 4px 18px rgba(200,95,142,.1);
+  }
+  .collapse-head h2{ margin:0; font-size:1.1rem; }
+  .collapse-head .chev{ transition:transform .2s ease; color:var(--accent-dark); font-size:1rem; }
+  .collapse-card.open .collapse-head .chev{ transform:rotate(180deg); }
+  .collapse-card.open .collapse-head{ border-bottom-left-radius:0; border-bottom-right-radius:0; }
+  .collapse-body{ display:none; background:var(--panel); border:1px solid var(--line); border-top:none;
+    border-radius:0 0 16px 16px; padding:18px 22px; box-shadow:0 4px 18px rgba(200,95,142,.08); }
+  .collapse-card.open .collapse-body{ display:block; }
+  .tag{ display:inline-block; font-size:.72rem; background:var(--accent-soft); color:var(--accent-dark);
+        padding:3px 10px; border-radius:20px; margin-top:4px; }
+  .week-label{ font-size:.85rem; color:var(--accent-dark); font-weight:600; margin:-10px 0 16px; }
+  .day-date{ font-size:.78rem; color:var(--muted); font-weight:400; margin-left:8px; }
+  .week-section{ margin-bottom:30px; }
+  .week-section-head{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .week-section-head h3{ margin:0; font-size:1rem; font-family:'Playfair Display', serif; font-style:italic; color:var(--accent-dark); }
+  .week-section-head .tag{ margin-top:0; }
+  .add-week-row{ display:flex; justify-content:center; margin-top:6px; }
+  .add-week-row button{
+    padding:9px 20px; border-radius:20px; border:1px dashed var(--accent); background:var(--accent-soft);
+    color:var(--accent-dark); font-family:inherit; font-size:.85rem; font-weight:600; cursor:pointer;
+  }
+  .add-week-row button:hover{ opacity:.85; }
+
+  /* compact per-day Food view inside Weekly Routine */
+  .food-mini{ margin-bottom:14px; }
+  .food-mini-toggle{
+    width:100%; text-align:left; padding:9px 14px; border-radius:12px; border:1px solid var(--line);
+    background:var(--accent-soft); color:var(--accent-dark); font-family:inherit; font-size:.85rem;
+    font-weight:600; cursor:pointer;
+  }
+  .food-mini-panel{ display:none; padding:12px 2px 2px; }
+  .food-mini-panel.active{ display:block; }
+  .food-meal-row{ display:flex; gap:8px; margin-bottom:10px; }
+  .food-meal-btn{
+    flex:1; padding:7px 10px; border-radius:14px; border:1px solid var(--line); background:#fff;
+    color:var(--muted); font-family:inherit; font-size:.8rem; cursor:pointer;
+  }
+  .food-meal-btn.active{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
+  .food-person-row{ display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .food-person-row label{ width:32px; flex-shrink:0; font-size:.76rem; font-weight:600; color:var(--accent-dark); }
+  .food-person-row input, .food-person-row textarea{ flex:1; padding:7px 12px; border-radius:10px; min-height:34px; }
+
+  /* Hourly timeline — meta row (time / merge) stacked above one or two full-width, auto-growing
+     text boxes, so entries are always visible without scrolling inside them or sideways across
+     the row. Same layout at every screen size, tablet or phone. When her routine and Abdullah's
+     coincide in the same hour, .hour-entries holds two boxes that sit side by side where there's
+     room and stack underneath each other when there isn't (narrow phones). */
+  .hour-row{ padding:8px 0; border-bottom:1px dashed var(--line); }
+  .hour-row:last-child{ border-bottom:none; }
+  .hour-meta{ display:flex; align-items:center; gap:6px; margin-bottom:5px; flex-wrap:wrap; }
+  .hour-row .hlabel{ font-size:.76rem; color:var(--muted); flex-shrink:0; }
+  .hour-row.merged .hlabel{ font-weight:600; color:var(--accent-dark); }
+  .hour-controls{ display:flex; align-items:center; gap:6px; margin-left:auto; flex-shrink:0; }
+  /* horizontal scroll of its own (rather than the whole page) if a box gets dragged wider than
+     the row has room for — see .hour-row textarea.hour-text below */
+  .hour-entries{ display:flex; gap:8px; flex-wrap:wrap; overflow-x:auto; }
+  .hour-entry{ flex:1 1 160px; min-width:140px; display:flex; flex-direction:column; gap:4px; }
+  .hour-entry .entry-controls{ display:flex; gap:6px; justify-content:flex-end; }
+  .hour-row textarea.hour-text{
+    display:block; width:100%; max-width:none; min-height:38px; padding:8px 12px; border-radius:10px;
+    resize:both; overflow-y:auto; font-family:inherit; font-size:.9rem; line-height:1.35; color:var(--ink);
+    border:1px solid var(--line); background:#fffdfe;
+  }
+  .hour-row textarea.hour-text:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-soft); border-color:var(--accent-dark); }
+  /* color-coded by whose entry it is, like her Google Calendar blocks — pink for her own,
+     light yellow for Abdullah's (anything whose text is tagged "Abdullah:") */
+  .hour-entry.owner-mama textarea.hour-text{ background:var(--accent-soft); border-color:var(--accent); }
+  .hour-entry.owner-baby textarea.hour-text{ background:var(--baby-soft); border-color:var(--baby); }
+  .entry-plus{
+    flex:1 1 160px; min-width:140px; align-self:flex-start; padding:8px 10px; border-radius:10px;
+    border:1px dashed var(--line); background:transparent; color:var(--muted); font-family:inherit;
+    font-size:.76rem; cursor:pointer; text-align:left;
+  }
+  .entry-plus:hover{ border-color:var(--accent); color:var(--accent-dark); }
+  .hour-row .span-input{
+    flex:0 0 38px; width:38px; padding:5px 3px; border-radius:8px; text-align:center; font-size:.74rem;
+  }
+  .cal-btn, .recur-btn{
+    flex-shrink:0; border:none; background:var(--accent-soft); color:var(--accent-dark); border-radius:8px;
+    width:28px; height:28px; cursor:pointer; font-size:.82rem; display:flex; align-items:center; justify-content:center;
+  }
+  .cal-btn:hover, .recur-btn:hover{ background:var(--accent); color:#fff; }
+  .recur-btn.active{ background:var(--accent-dark); color:#fff; }
+  .routine-drawing-shown img{ max-width:100%; border-radius:10px; border:1px solid var(--line); margin-bottom:12px; display:block; }
+  .routine-canvas-wrap{ display:none; margin:6px 0 14px; }
+  .routine-canvas-wrap.active{ display:block; }
+  .routine-canvas{
+    width:100%; height:170px; touch-action:none; border:1px solid var(--line); border-radius:14px;
+    background:#fffdfe; display:block;
+  }
+
+  /* Food: horizontal scrolling day boxes */
+  .day-scroll{ display:flex; gap:14px; overflow-x:auto; padding:4px 4px 14px; scroll-snap-type:x proximity; }
+  .day-scroll::-webkit-scrollbar{ height:8px; }
+  .day-scroll::-webkit-scrollbar-thumb{ background:var(--accent-soft); border-radius:8px; }
+  .day-box{
+    flex:0 0 250px; scroll-snap-align:start; background:#fffdfe; border:1px solid var(--line);
+    border-radius:14px; padding:14px;
+  }
+  .day-box .fday-title{ font-size:.9rem; font-weight:700; color:var(--accent-dark); margin-bottom:10px; }
+  .day-box .who-block{ margin-bottom:10px; }
+  .day-box .who-block:last-child{ margin-bottom:0; }
+  .day-box .who-row{ display:flex; align-items:flex-start; gap:6px; }
+  .day-box textarea{ min-height:64px; font-size:.85rem; }
+  .scroll-hint{ font-size:.72rem; color:var(--muted); margin-bottom:10px; }
+
+  /* urgent list */
+  .add-row{ display:flex; gap:8px; margin-bottom:14px; align-items:flex-end; }
+  .add-row input[type=text]{ flex:1; border-radius:20px; }
+  .add-row textarea.list-item-input{ flex:1; min-height:44px; max-height:none; border-radius:16px; resize:both; }
+  .add-row button, .journal-add button, .cal-form button{
+    padding:10px 18px; border:none; background:var(--accent-dark); color:#fff; border-radius:20px; cursor:pointer;
+    font-size:.88rem; font-family:inherit; font-weight:600;
+  }
+  .add-row button:hover, .journal-add button:hover, .cal-form button:hover{ opacity:.88; }
+  ul.task-list{ list-style:none; margin:0; padding:0; }
+  ul.task-list li{ display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px dashed var(--line); }
+  ul.task-list li:last-child{ border-bottom:none; }
+  ul.task-list li.done span.txt{ text-decoration:line-through; color:var(--muted); }
+  ul.task-list li .txt{ flex:1; white-space:pre-wrap; }
+  ul.task-list li button.del{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:.85rem; font-family:inherit; }
+  button.del{
+    background:#fff; border:1px solid var(--line); color:var(--muted); cursor:pointer; font-size:.78rem;
+    font-family:inherit; border-radius:16px; padding:6px 13px; white-space:nowrap;
+  }
+  button.del:hover{ border-color:var(--urgent); color:var(--urgent); }
+  .empty{ color:var(--muted); font-style:italic; font-size:.9rem; }
+
+  /* Vinted sell list — each item tracks two independent, tappable statuses instead of one
+     done checkbox, so she can update "pictures posted" and "sold" separately as she goes */
+  ul.vinted-list li{ flex-wrap:wrap; }
+  ul.vinted-list li .txt{ flex-basis:100%; }
+  .status-btn{
+    border:1px solid var(--line); background:#fff; color:var(--muted); border-radius:16px;
+    padding:5px 12px; font-family:inherit; font-size:.78rem; cursor:pointer; white-space:nowrap;
+  }
+  .status-btn.posted-on{ background:var(--accent-soft); border-color:var(--accent); color:var(--accent-dark); font-weight:600; }
+  .status-btn.sold-on{ background:var(--sold-soft); border-color:var(--sold); color:var(--sold); font-weight:600; }
+
+  /* journal */
+  .journal-date-row{ display:flex; align-items:center; gap:10px; margin-bottom:12px; }
+  .journal-date-row label{ font-size:.78rem; color:var(--muted); }
+  .journal-date-row input[type=date]{ width:auto; padding:7px 10px; }
+  .journal-search-row{ display:flex; gap:8px; margin:16px 0 14px; padding-top:14px; border-top:1px solid var(--line); flex-wrap:wrap; }
+  .journal-search-row input[type=month]{ width:auto; padding:7px 10px; }
+  .journal-search-row input[type=text]{ flex:1; min-width:140px; padding:7px 12px; border-radius:20px; }
+  .journal-search-row button{
+    padding:7px 14px; border-radius:16px; border:1px solid var(--line); background:#fff; color:var(--muted);
+    font-family:inherit; font-size:.8rem; cursor:pointer;
+  }
+  .journal-add{ display:flex; gap:8px; margin-bottom:16px; }
+  .journal-add textarea{ flex:1; min-height:60px; }
+  .journal-entry{ border-bottom:1px dashed var(--line); padding:12px 0; }
+  .journal-entry:last-child{ border-bottom:none; }
+  .journal-entry .jdate{ font-size:.78rem; color:var(--muted); margin-bottom:4px; display:flex; justify-content:space-between; }
+  .journal-entry .jdate button{ background:none; border:none; color:var(--muted); cursor:pointer; font-size:.75rem; font-family:inherit; }
+  .journal-entry .jtext{ white-space:pre-wrap; font-size:.92rem; }
+
+  /* live google calendar */
+  .gcal-item{ display:flex; gap:12px; padding:9px 0; border-bottom:1px dashed var(--line); align-items:baseline; }
+  .gcal-item:last-child{ border-bottom:none; }
+  .gcal-when{ flex-shrink:0; width:90px; font-size:.78rem; color:var(--muted); }
+  .gcal-title{ font-size:.9rem; }
+  .gcal-fix{ font-size:.82rem; }
+  .gcal-fix a{ text-decoration:underline; }
+  .gcal-nav{ display:flex; align-items:center; justify-content:center; gap:16px; margin:10px 0; }
+  .gcal-nav button{
+    width:30px; height:30px; border-radius:50%; border:1px solid var(--line); background:#fff;
+    color:var(--accent-dark); cursor:pointer; font-size:.9rem;
+  }
+  .gcal-nav span{ font-family:'Playfair Display',serif; font-style:italic; font-size:1.05rem; color:var(--accent-dark); min-width:150px; text-align:center; }
+  .gcal-dow-row{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:4px; }
+  .gcal-dow-row span{ text-align:center; font-size:.7rem; color:var(--muted); text-transform:uppercase; letter-spacing:.03em; }
+  .gcal-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+  .gcal-cell{
+    aspect-ratio:1; border:1px solid var(--line); border-radius:10px; background:#fffdfe; cursor:pointer;
+    font-family:inherit; font-size:.82rem; color:var(--ink); position:relative; display:flex; align-items:center; justify-content:center;
+  }
+  .gcal-cell.empty{ visibility:hidden; cursor:default; border:none; }
+  .gcal-cell.today{ border-color:var(--accent-dark); font-weight:700; }
+  .gcal-cell.selected{ background:var(--accent-dark); color:#fff; }
+  .gcal-cell .dot{ position:absolute; bottom:5px; width:5px; height:5px; border-radius:50%; background:var(--accent-dark); }
+  .gcal-cell.selected .dot{ background:#fff; }
+  #gcalDayDetail{ margin-top:16px; border-top:1px solid var(--line); padding-top:12px; }
+  #gcalDayDetail h3{ font-family:'Playfair Display',serif; font-style:italic; font-weight:400; font-size:1rem; margin:0 0 8px; color:var(--accent-dark); }
+
+  /* journal pen mode */
+  .mode-toggle{ display:flex; gap:8px; margin-bottom:10px; }
+  .mode-toggle button{
+    padding:6px 14px; border-radius:16px; border:1px solid var(--line); background:#fff; color:var(--muted);
+    font-family:inherit; font-size:.8rem; cursor:pointer;
+  }
+  .mode-toggle button.active{ background:var(--accent-dark); color:#fff; border-color:var(--accent-dark); }
+  #journalCanvasWrap{ display:none; }
+  #journalCanvasWrap.active{ display:block; }
+  #journalCanvas{
+    width:100%; height:220px; touch-action:none; border:1px solid var(--line); border-radius:14px;
+    background:#fffdfe; display:block;
+  }
+  .canvas-tools{ display:flex; justify-content:flex-end; gap:8px; margin-top:8px; }
+  .canvas-tools button{
+    padding:6px 14px; border-radius:16px; border:1px solid var(--line); background:#fff; color:var(--accent-dark);
+    font-family:inherit; font-size:.78rem; cursor:pointer;
+  }
+  .journal-entry img{ max-width:100%; border-radius:10px; border:1px solid var(--line); }
+  #moreCanvasWrap{ display:none; margin-top:10px; }
+  #moreCanvasWrap.active{ display:block; }
+  #moreCanvas{
+    width:100%; height:220px; touch-action:none; border:1px solid var(--line); border-radius:14px;
+    background:#fffdfe; display:block;
+  }
+  #moreDrawingShown img{ max-width:100%; border-radius:10px; border:1px solid var(--line); margin-top:14px; display:block; }
+
+  /* calendar tab */
+  .cal-form{ display:grid; grid-template-columns:2fr 1fr 1fr; gap:10px; align-items:end; }
+  .cal-form label{ font-size:.74rem; color:var(--muted); display:block; margin-bottom:4px; }
+  .cal-form .full{ grid-column:1 / -1; }
+  @media (max-width:640px){ .cal-form{ grid-template-columns:1fr; } }
+  .cal-list{ margin-top:16px; }
+  .cal-item{ display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px dashed var(--line); font-size:.88rem; }
+
+  /* install banner */
+  .install-note{ background:var(--accent-soft); border:1px solid #f2b9d1; border-radius:14px; padding:14px 18px; font-size:.82rem; margin-bottom:20px; color:var(--ink); }
+
+  /* custom lists (More section) */
+  .list-category{ margin-bottom:18px; }
+  .list-category:last-child{ margin-bottom:0; }
+  .list-category h3{ font-family:inherit; font-style:normal; font-size:.85rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px; }
+  .new-list-form{ margin-top:14px; padding:16px 18px; border:1px dashed var(--accent); border-radius:14px; background:var(--accent-soft); }
+  .new-list-form h2{ font-size:1rem; margin:0 0 10px; }
+  .new-list-form label{ font-size:.74rem; color:var(--muted); display:block; margin-bottom:4px; }
+  .new-list-form > div{ margin-bottom:12px; }
+  .new-list-form .check-row{ display:flex; align-items:center; gap:8px; font-size:.85rem; margin-bottom:14px; }
+  .new-list-form .check-row input{ width:auto; }
+  .new-list-form .form-btns{ display:flex; gap:10px; }
+  .btn-secondary{ background:#fff; color:var(--muted); border:1px solid var(--line); }
+  .add-row input.list-item-price-input{ flex:0 0 110px; width:110px; }
+  .item-price{ color:var(--accent-dark); font-weight:600; font-size:.85rem; }
+  .confirm-del{ color:var(--urgent); font-weight:700; }
+
+  /* Study — topics (e.g. Periodontal Maintenance) each hold sub-topic notes (e.g. GBT); every
+     note can be typed, written with a pen, or hold attached photos */
+  .study-add-note-row{ margin:10px 0 18px; }
+  .study-note-card{
+    border:1px solid var(--line); border-radius:14px; padding:16px 18px; margin-bottom:16px; background:#fffdfe;
+  }
+  .study-note-card:last-child{ margin-bottom:4px; }
+  .study-note-head{ display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:10px; }
+  .study-note-head h3{ margin:0; font-size:.95rem; text-transform:none; letter-spacing:0; color:var(--accent-dark); font-weight:700; }
+  .study-note-card textarea{ min-height:110px; }
+  .study-photos{ display:flex; flex-wrap:wrap; gap:10px; margin-top:10px; }
+  .study-photo-box{
+    position:relative; width:220px; height:170px; resize:both; overflow:auto; border:1px solid var(--line);
+    border-radius:10px; background:#fff;
+  }
+  .study-photo-box img{ display:block; max-width:none; }
+  .study-photo-remove{
+    position:sticky; top:4px; left:100%; transform:translateX(-100%); width:24px; height:24px; border-radius:50%;
+    border:none; background:rgba(63,35,51,.68); color:#fff; cursor:pointer; font-size:.8rem; line-height:1;
+    display:flex; align-items:center; justify-content:center; margin:4px;
+  }
+  .study-photo-hint{ font-size:.72rem; color:var(--muted); margin-top:6px; }
+  .study-paste-zone{
+    border:1px dashed var(--line); border-radius:10px; padding:10px 12px; margin-top:10px; font-size:.8rem;
+    color:var(--muted); cursor:text; outline:none;
+  }
+  .study-paste-zone:focus{ border-color:var(--accent); color:var(--accent-dark); }
+  .study-photo-tools{ display:flex; align-items:center; gap:10px; margin-top:10px; flex-wrap:wrap; }
+  .study-photo-tools label{
+    padding:6px 14px; border-radius:16px; border:1px solid var(--line); background:#fff; color:var(--accent-dark);
+    font-family:inherit; font-size:.8rem; cursor:pointer;
+  }
+  .study-photo-tools input[type=file]{ display:none; }
+
+  /* Study drill-down pages: topics list -> topic page (its sub-topics) -> note page, each its own
+     screen with a back link, instead of expanding in place, so opening a sub-topic never means
+     scrolling through the rest of the page to reach it. */
+  .study-page-list{ display:flex; flex-direction:column; gap:10px; margin-bottom:6px; }
+  .study-page-row{
+    display:flex; align-items:center; gap:10px; border:1px solid var(--line); border-radius:14px;
+    background:var(--panel); box-shadow:0 4px 18px rgba(200,95,142,.08); padding:6px 8px 6px 4px;
+  }
+  .study-page-open{
+    flex:1; display:flex; flex-direction:column; align-items:flex-start; gap:2px; text-align:left;
+    background:none; border:none; cursor:pointer; padding:12px 14px; font-family:inherit; border-radius:10px;
+  }
+  .study-page-open:hover{ background:var(--accent-soft); }
+  .study-page-title{ font-size:.98rem; color:var(--ink); font-weight:600; }
+  .study-page-sub{ font-size:.76rem; color:var(--muted); }
+  .study-page-row .del{ flex-shrink:0; }
+  .study-back-btn{
+    background:none; border:none; color:var(--accent-dark); font-family:inherit; font-size:.86rem;
+    font-weight:600; cursor:pointer; padding:6px 0; margin-bottom:12px; display:inline-flex; align-items:center; gap:4px;
+  }
+  .study-back-btn:hover{ text-decoration:underline; }
+  .study-page-heading{ margin:0 0 14px; font-size:1.3rem; }
+  .study-note-delete-row{ margin-top:14px; display:flex; gap:10px; }
+</style>
+
+<div id="sceneLayer">
+  <div class="cloud" style="width:90px;height:34px;top:8%;animation-duration:70s;"></div>
+  <div class="cloud" style="width:130px;height:44px;top:16%;animation-duration:95s;animation-delay:-30s;"></div>
+  <div class="cloud" style="width:70px;height:26px;top:5%;animation-duration:60s;animation-delay:-10s;"></div>
+  <div class="cloud" style="width:110px;height:38px;top:22%;animation-duration:85s;animation-delay:-50s;"></div>
+  <div class="river"></div>
+  <div id="flowerLayer"></div>
+</div>
+
+<button id="sidebarToggle" onclick="toggleSidebar()">&#9776;</button>
+
+<nav id="sideNav">
+  <div class="logo-wrap">
+    <svg width="34" height="34" viewBox="0 0 60 60">
+      <g fill="#c85f8e">
+        <ellipse cx="30" cy="14" rx="9" ry="13"/>
+        <ellipse cx="30" cy="46" rx="9" ry="13"/>
+        <ellipse cx="14" cy="30" rx="13" ry="9"/>
+        <ellipse cx="46" cy="30" rx="13" ry="9"/>
+      </g>
+      <circle cx="30" cy="30" r="9" fill="#fff6f9"/>
+      <circle cx="30" cy="30" r="5" fill="#f4b6cf"/>
+    </svg>
+    <div class="brand">Petal Planner<span>Personal &middot; private</span></div>
+  </div>
+  <button class="nav-btn active" data-target="urgent">Urgent Tasks / Docs</button>
+  <button class="nav-btn" data-target="routine">Weekly Routine</button>
+  <button class="nav-btn" data-target="food">Food</button>
+  <button class="nav-btn" data-target="journal">Daily Journal</button>
+  <button class="nav-btn" data-target="study">Study</button>
+  <button class="nav-btn" data-target="calendar">Calendar</button>
+  <button class="nav-btn" data-target="more">More</button>
+  <div class="save-status" id="saveStatus"></div>
+  <div class="backup-box">
+    <p id="backupNote">Everything you type here saves automatically in <strong>this browser only</strong>. Back it up so you don't lose it if you clear your browser or switch devices.</p>
+    <div class="storage-meter" id="storageMeter"></div>
+    <div class="last-backup" id="lastBackup"></div>
+    <button id="exportBtn">Download backup</button>
+    <label for="importFile">Restore from backup</label>
+    <input type="file" id="importFile" accept="application/json">
+    <div class="signout-link site-only"><a href="/logout">Sign out of this device</a></div>
+  </div>
+</nav>
+
+<main id="mainArea">
+
+  <div class="save-warning" id="saveWarning" hidden>
+    <strong>Your latest changes are NOT being saved</strong>
+    This browser's storage for the page is full. Tap "Download backup" in the menu now, then free up space by removing a few Study photos or old drawings. This warning disappears as soon as saving works again.
+  </div>
+
+  <section id="urgent" class="active">
+    <h1>Urgent Tasks / Docs</h1>
+    <div class="install-note">📱 This page now has its own permanent web address. To put it on your phone's home screen: tap the Share button (iPhone/Safari) or the three-dot menu (Android/Chrome) and choose "Add to Home Screen."</div>
+    <div class="sub">Anything time-sensitive goes here first.</div>
+    <div class="card urgent-card">
+      <h2>Needs attention</h2>
+      <div class="add-row">
+        <textarea rows="1" id="urgentInput" class="list-item-input" placeholder="Add an urgent task or doc..."></textarea>
+        <button onclick="addUrgent()">Add</button>
+      </div>
+      <ul class="task-list" id="urgentList"></ul>
+    </div>
+
+    <div class="card urgent-card">
+      <h2>Urgent Grocery Items Needed</h2>
+      <div class="sub" style="margin-bottom:14px;">Anything you need from the grocery store urgently, separate from the tasks above.</div>
+      <div class="add-row">
+        <textarea rows="1" id="urgentGroceryInput" class="list-item-input" placeholder="Add something you urgently need to buy..."></textarea>
+        <button onclick="addUrgentGrocery()">Add</button>
+      </div>
+      <ul class="task-list" id="urgentGroceryList"></ul>
+    </div>
+
+    <div class="card urgent-card">
+      <h2>Things to Do</h2>
+      <div class="sub" style="margin-bottom:14px;">Calls, errands and little jobs to get done.</div>
+      <div class="add-row">
+        <textarea rows="1" id="thingsToDoInput" class="list-item-input" placeholder="Add something to do..."></textarea>
+        <button onclick="addThingToDo()">Add</button>
+      </div>
+      <ul class="task-list" id="thingsToDoList"></ul>
+    </div>
+
+    <div class="card urgent-card">
+      <h2>Post an Ad on Vinted</h2>
+      <div class="sub" style="margin-bottom:14px;">Things at home to sell — list them here, then tap "Posted" once the pictures and ad are up, and "Sold" once it's gone.</div>
+      <div class="add-row">
+        <textarea rows="1" id="vintedInput" class="list-item-input" placeholder="Add something you need to sell..."></textarea>
+        <button onclick="addVinted()">Add</button>
+      </div>
+      <ul class="task-list vinted-list" id="vintedList"></ul>
+    </div>
+  </section>
+
+  <section id="routine">
+    <h1>Weekly Routine</h1>
+    <div class="sub">Click a day to open its hour-by-hour timeline. Each entry has a small calendar button to send it straight to Google Calendar. Past weeks drop off automatically once they end — use "Add next week" to start planning ahead.</div>
+    <div id="routineList"></div>
+    <div class="add-week-row"><button onclick="addNextRoutineWeek()">+ Add next week</button></div>
+  </section>
+
+  <section id="food">
+    <h1>Food</h1>
+    <div class="sub">Click Breakfast, Lunch, or Dinner, then scroll sideways through the days. Each entry has a calendar button too.</div>
+    <div id="foodList"></div>
+  </section>
+
+  <section id="journal">
+    <h1>Daily Journal</h1>
+    <div class="sub">Pick a date for each entry — saves automatically here, ready whenever you open the page again.</div>
+    <div class="card">
+      <div class="journal-date-row">
+        <label for="journalDateInput">Entry date</label>
+        <input type="date" id="journalDateInput">
+      </div>
+      <div class="mode-toggle">
+        <button id="typeModeBtn" class="active" onclick="setJournalMode('type')">&#9000; Type</button>
+        <button id="penModeBtn" onclick="setJournalMode('pen')">&#9998; Write with pen</button>
+      </div>
+      <div class="journal-add" id="journalTypeWrap">
+        <textarea id="journalInput" placeholder="Write your entry..."></textarea>
+        <button onclick="addJournal()">Add Entry</button>
+      </div>
+      <div id="journalCanvasWrap">
+        <canvas id="journalCanvas"></canvas>
+        <div class="canvas-tools">
+          <button onclick="clearCanvas()">Clear</button>
+          <button onclick="addJournalDrawing()">Add Entry</button>
+        </div>
+      </div>
+      <div class="journal-search-row">
+        <input type="month" id="journalMonthFilter" title="Filter by month">
+        <input type="text" id="journalSearchInput" placeholder="Search entries by date or text...">
+        <button onclick="clearJournalFilters()">Clear</button>
+      </div>
+      <div id="journalList"></div>
+    </div>
+  </section>
+
+  <section id="study">
+    <h1>Study</h1>
+    <div class="sub">Tap a topic to open its sub-topics — like Periodontal Maintenance holding GBT — then tap a sub-topic to open its note: type, write with a pen, or attach photos. Dictating with your keyboard's mic button works directly into any of these text boxes.</div>
+    <div id="studyTopicsWrap"></div>
+  </section>
+
+  <section id="calendar">
+    <h1>Calendar</h1>
+    <div class="sub">Your actual Google Calendar, plus a quick way to add to it.</div>
+    <div class="card">
+      <h2>Your Google Calendar</h2>
+      <div id="gcalStatus" class="empty">Loading&hellip;</div>
+      <div class="gcal-nav">
+        <button onclick="gcalPrevMonth()">&larr;</button>
+        <span id="gcalMonthLabel"></span>
+        <button onclick="gcalNextMonth()">&rarr;</button>
+      </div>
+      <div id="gcalGrid"></div>
+      <div id="gcalDayDetail"></div>
+    </div>
+    <div class="card">
+      <h2>Quick add</h2>
+      <div class="cal-form">
+        <div class="full"><label>Title</label><input type="text" id="calTitle" placeholder="e.g. Abdullah's health visitor appointment"></div>
+        <div><label>Date</label><input type="date" id="calDate"></div>
+        <div><label>Start time</label><input type="time" id="calStart"></div>
+        <div><label>End time</label><input type="time" id="calEnd"></div>
+        <div class="full"><button onclick="quickAddCalendar()">Add to Google Calendar</button></div>
+      </div>
+      <div class="cal-list" id="calList"></div>
+    </div>
+  </section>
+
+  <section id="more">
+    <h1>More</h1>
+    <div class="sub">Keep as many lists as you like, plus an open notes space below.</div>
+
+    <div class="card">
+      <h2>Lists</h2>
+      <div id="moreListsWrap"></div>
+      <div class="add-week-row"><button onclick="showNewListForm()">+ New list</button></div>
+      <div class="new-list-form" id="newListFormCard" style="display:none;">
+        <h2>New list</h2>
+        <div>
+          <label for="newListTitle">List name</label>
+          <input type="text" id="newListTitle" placeholder="e.g. Birthday gift ideas">
+        </div>
+        <div>
+          <label for="newListCategories">Sections within this list (optional, comma-separated — e.g. Kitchen, Bathroom). Leave blank for one simple list.</label>
+          <input type="text" id="newListCategories" placeholder="Optional...">
+        </div>
+        <div class="check-row">
+          <input type="checkbox" id="newListCalBtn">
+          <label for="newListCalBtn" style="margin:0;">Add a "send to Google Calendar" button on each item (handy for task lists)</label>
+        </div>
+        <div class="check-row">
+          <input type="checkbox" id="newListPriceBtn">
+          <label for="newListPriceBtn" style="margin:0;">Add a price field to each item (handy for shopping lists)</label>
+        </div>
+        <div class="form-btns">
+          <button onclick="createNewList()">Create list</button>
+          <button class="btn-secondary" onclick="hideNewListForm()">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Notes</h2>
+      <div class="mode-toggle">
+        <button id="moreTypeModeBtn" class="active" onclick="setMoreMode('type')">&#9000; Type</button>
+        <button id="morePenModeBtn" onclick="setMoreMode('pen')">&#9998; Write with pen</button>
+      </div>
+      <textarea id="moreText" placeholder="Anything else goes here..." style="min-height:220px;"></textarea>
+      <div id="moreCanvasWrap">
+        <canvas id="moreCanvas"></canvas>
+        <div class="canvas-tools">
+          <button onclick="clearMoreCanvas()">Clear</button>
+          <button onclick="saveMoreDrawing()">Save Drawing</button>
+        </div>
+      </div>
+      <div id="moreDrawingShown"></div>
+    </div>
+  </section>
+
+  <div class="footnote">
+    Everything above saves automatically as you type, right here in this browser, with no need to message me. Use "Download backup" regularly. You still also have the <a href="https://docs.google.com/document/d/1j2TDHJaK8Rrv6zQvz-pMpMeZ-ITXBn0B-XUJaKC8Dpg/edit" target="_blank">Google Doc hub</a> as a cross-device backup.
+  </div>
+
+</main>
+
+<div class="sync-status" id="syncStatus" hidden></div>
+
+<div class="undo-toast" id="undoToast" hidden>
+  <span class="undo-msg"></span>
+  <button type="button" class="undo-btn">Undo</button>
+</div>
+
+<script>
+  const DAYS = ["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  const DAY_TAGS = {Monday:"Clinic — Grays Dental Care, RM17 5EZ", Thursday:"Clinic — Grays Dental Care, RM17 5EZ"};
+  const MEALS = ["Breakfast","Lunch","Dinner"];
+  const MEAL_TIME = {Breakfast:"08:00", Lunch:"13:00", Dinner:"19:00"};
+  const STORE_KEY = "fatimaHubData";
+  // Kept in its own key rather than inside the data, so restoring an older backup never makes the
+  // page think a backup was taken more recently than it really was.
+  const LAST_BACKUP_KEY = STORE_KEY + ':lastBackupAt';
+  // Browsers give a page roughly 5 MB of storage; Safari on iPhone counts each character as two
+  // bytes, so about 2.5 million characters is the safe budget to measure against.
+  const STORAGE_BUDGET_CHARS = 2500000;
+  const BACKUP_OVERDUE_DAYS = 7;
+  // Photos are shrunk to this before they're stored — plenty for reading notes on a phone, and
+  // typically a tenth of the size of the original camera photo.
+  const PHOTO_MAX_DIM = 1600, PHOTO_QUALITY = 0.8;
+  // Sync between devices, on the Petal Planner website only (see syncStart). Declared up here
+  // because save() runs during start-up, before the rest of the sync code is reached.
+  const SYNC_CHECK_MS = 15000;
+  const sync = {
+    enabled: false, version: null, base: undefined, pushTimer: 0, retryTimer: 0,
+    pushing: false, pushAgain: false, lastLocalEdit: 0
+  };
+
+  function hourLabels(){
+    const arr = [];
+    for(let h=0; h<24; h++){
+      const period = h < 12 ? "AM" : "PM";
+      let disp = h % 12; if(disp === 0) disp = 12;
+      arr.push(disp + ":00 " + period);
+    }
+    return arr;
+  }
+  const HOURS = hourLabels();
+  function hourTo24(hLabel){
+    const [time, period] = hLabel.split(' ');
+    let [h] = time.split(':').map(Number);
+    if(period === 'AM'){ if(h === 12) h = 0; } else { if(h !== 12) h += 12; }
+    return String(h).padStart(2,'0') + ':00';
+  }
+
+  function isoDate(dateObj){
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth()+1).padStart(2,'0');
+    const d = String(dateObj.getDate()).padStart(2,'0');
+    return `${y}-${m}-${d}`;
+  }
+  function mondayOfWeek(dateObj){
+    const jsIdx = dateObj.getDay(); // Sun=0..Sat=6
+    const offset = jsIdx === 0 ? -6 : 1 - jsIdx;
+    return new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()+offset);
+  }
+  function weekDatesFromMonday(mondayDate){
+    const map = {};
+    DAYS.forEach((day,i)=>{
+      map[day] = new Date(mondayDate.getFullYear(), mondayDate.getMonth(), mondayDate.getDate()+i);
+    });
+    return map;
+  }
+  function emptyWeekRoutine(){
+    const week = {};
+    DAYS.forEach(d=>{
+      week[d] = { _spans: {}, _split: {}, _drawing: "" };
+      HOURS.forEach(h=>{ week[d][h] = { mama:"", baby:"" }; });
+    });
+    return week;
+  }
+  // Recurring routine entries — carried into every current/future week's empty slots. Each hour
+  // holds independent mama/baby text so hers and Abdullah's entries never overwrite one another.
+  function applyRecurringToWeek(wk){
+    const week = data.routineWeeks[wk];
+    if(!week) return;
+    DAYS.forEach(day=>{
+      const rec = data.recurring[day];
+      if(!rec) return;
+      if(!week[day]) week[day] = { _spans: {}, _split: {}, _drawing: "" };
+      if(!week[day]._spans) week[day]._spans = {};
+      if(!week[day]._split) week[day]._split = {};
+      Object.keys(rec).forEach(hour=>{
+        const entry = rec[hour];
+        if(!entry) return;
+        if(!week[day][hour] || typeof week[day][hour] !== "object") week[day][hour] = {mama:"", baby:""};
+        const cell = week[day][hour];
+        let filled = false;
+        if(entry.mama && !(cell.mama||"").trim()){ cell.mama = entry.mama; filled = true; }
+        if(entry.baby && !(cell.baby||"").trim()){ cell.baby = entry.baby; filled = true; }
+        if(filled) week[day]._spans[hour] = entry.span || 1;
+      });
+    });
+  }
+  function applyRecurringToAllWeeks(){
+    Object.keys(data.routineWeeks).forEach(wk=> applyRecurringToWeek(wk));
+  }
+
+  // Starter toddler routine for Abdullah, distilled from the daily-routine templates Fatima shared —
+  // seeded once as "recurring" entries so they fill in every day, and only into empty hour boxes,
+  // never overwriting anything she's already typed. She can retime, edit or remove any of these,
+  // and add her own routine into the same hours alongside them.
+  // v1 = the original seed; kept as-is so later versions can safely migrate anything that still
+  // matches it (and leave alone anything Fatima has since edited herself).
+  function toddlerRoutineDayV1(){
+    return {
+      "7:00 AM": {text:"Abdullah: wake up, nappy change, cuddles, get dressed", span:1},
+      "8:00 AM": {text:"Abdullah: breakfast", span:1},
+      "9:00 AM": {text:"Abdullah: outdoor / active play — walk, park, playground, scooter", span:2},
+      "11:00 AM": {text:"Abdullah: learning & independent play — books, puzzles, sensory bin", span:1},
+      "12:00 PM": {text:"Abdullah: lunch", span:1},
+      "1:00 PM": {text:"Abdullah: nap / quiet time", span:2},
+      "3:00 PM": {text:"Abdullah: wake up & snack", span:1},
+      "4:00 PM": {text:"Abdullah: afternoon play & learn — crafts, reading, movement activity", span:2},
+      "6:00 PM": {text:"Abdullah: family dinner", span:1},
+      "7:00 PM": {text:"Abdullah: bath & wind down", span:1},
+      "8:00 PM": {text:"Abdullah: books, cuddles & bedtime", span:1}
+    };
+  }
+  // v2 — wake-up moved to 8am (folded into the breakfast slot), nap shortened to end by 2pm,
+  // bedtime moved to the 8:30–9:30pm slot. The grid only has whole-hour boxes, so the exact
+  // half-hour times are written into the text itself.
+  function toddlerRoutineDayV2(){
+    return {
+      "8:00 AM": {baby:"Abdullah: wake up, nappy change, cuddles, dressed, breakfast", mama:"", span:1},
+      "9:00 AM": {baby:"Abdullah: outdoor / active play — walk, park, playground, scooter", mama:"", span:2},
+      "11:00 AM": {baby:"Abdullah: learning & independent play — books, puzzles, sensory bin", mama:"", span:1},
+      "12:00 PM": {baby:"Abdullah: lunch", mama:"", span:1},
+      "1:00 PM": {baby:"Abdullah: nap / quiet time (12:30–2:00 PM)", mama:"", span:1},
+      "3:00 PM": {baby:"Abdullah: wake up & snack", mama:"", span:1},
+      "4:00 PM": {baby:"Abdullah: afternoon play & learn — crafts, reading, movement activity", mama:"", span:2},
+      "6:00 PM": {baby:"Abdullah: family dinner", mama:"", span:1},
+      "7:00 PM": {baby:"Abdullah: bath & wind down", mama:"", span:1},
+      "9:00 PM": {baby:"Abdullah: books, cuddles & sleep (8:30–9:30 PM)", mama:"", span:1}
+    };
+  }
+  const TODDLER_SEED_VERSION = 2;
+  // One-time migration: clears any recurring entry / week cell that still holds the exact old
+  // (v1) auto-seeded text, then lets applyRecurringToAllWeeks() (called right after load()) refill
+  // those now-empty slots with the v2 wording. Anything Fatima already edited away from the v1
+  // wording is left untouched.
+  function migrateToddlerRoutineV1toV2(d){
+    const V1 = toddlerRoutineDayV1();
+    const V2 = toddlerRoutineDayV2();
+    DAYS.forEach(day=>{
+      if(!d.recurring[day]) d.recurring[day] = {};
+      const rec = d.recurring[day];
+      Object.keys(V1).forEach(hour=>{
+        if(rec[hour] && rec[hour].text === V1[hour].text) delete rec[hour];
+      });
+      Object.keys(V2).forEach(hour=>{
+        if(!rec[hour]) rec[hour] = V2[hour];
+      });
+      Object.keys(d.routineWeeks).forEach(wk=>{
+        const dayData = d.routineWeeks[wk][day];
+        if(!dayData) return;
+        Object.keys(V1).forEach(hour=>{
+          if(dayData[hour] === V1[hour].text){
+            dayData[hour] = "";
+            if(dayData._spans) delete dayData._spans[hour];
+          }
+        });
+      });
+    });
+  }
+
+  // Each hour used to hold one plain-text string. Now it holds independent mama/baby text, so an
+  // hour where her routine and Abdullah's routine coincide can show as two separate boxes instead
+  // of one run-together string. This one-time migration splits any old string cell apart: text
+  // segments (previously joined with " · " when a prayer time or recurring entry got appended
+  // alongside something already there) that start with "Abdullah:" become the baby entry, anything
+  // else becomes the mama entry — nothing is discarded, it just moves into its own field.
+  const ROUTINE_CELL_VERSION = 2;
+  function splitLegacyRoutineText(str){
+    const text = (str || "").trim();
+    if(!text) return {mama:"", baby:""};
+    const parts = text.split(" · ").map(s=>s.trim()).filter(Boolean);
+    const mamaParts = [], babyParts = [];
+    parts.forEach(p=>{ (p.startsWith("Abdullah:") ? babyParts : mamaParts).push(p); });
+    return {mama: mamaParts.join(" · "), baby: babyParts.join(" · ")};
+  }
+  function migrateRoutineCellsToSplit(d){
+    DAYS.forEach(day=>{
+      Object.keys(d.routineWeeks).forEach(wk=>{
+        const dayData = d.routineWeeks[wk][day];
+        if(!dayData) return;
+        HOURS.forEach(h=>{
+          if(typeof dayData[h] === "string"){
+            dayData[h] = splitLegacyRoutineText(dayData[h]);
+          } else if(!dayData[h] || typeof dayData[h] !== "object"){
+            dayData[h] = {mama:"", baby:""};
+          }
+        });
+        if(!dayData._split) dayData._split = {};
+      });
+      const rec = d.recurring[day];
+      if(rec){
+        Object.keys(rec).forEach(hour=>{
+          const entry = rec[hour];
+          if(entry && typeof entry.text === "string"){
+            const split = splitLegacyRoutineText(entry.text);
+            rec[hour] = {mama: split.mama, baby: split.baby, span: entry.span || 1};
+          }
+        });
+      }
+    });
+  }
+
+  // Custom lists (More section)
+  function newId(prefix){ return prefix + '_' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+
+  // Study — topics (e.g. Periodontal Maintenance) each hold sub-topic notes (e.g. GBT), and each
+  // note can be typed, written with a pen, or hold attached photos.
+  function defaultStudyNote(title){
+    return {id:newId('note'), title, text:"", drawing:"", images:[]};
+  }
+  function defaultStudyTopics(){
+    return [
+      {id:newId('topic'), title:"Periodontal Maintenance", notes:[defaultStudyNote("GBT (Guided Biofilm Therapy)")]}
+    ];
+  }
+  const STUDY_SEED_VERSION = 1;
+  // Adds the starter Periodontal Maintenance -> GBT topic/note only if nothing matching already
+  // exists (by title, case-insensitive) — safe to re-run, never duplicates.
+  function seedStudyV1(merged){
+    let perio = merged.study.topics.find(t => (t.title||"").trim().toLowerCase() === "periodontal maintenance");
+    if(!perio){
+      perio = {id:newId('topic'), title:"Periodontal Maintenance", notes:[]};
+      merged.study.topics.push(perio);
+    }
+    const hasGBT = perio.notes.some(n => (n.title||"").trim().toLowerCase().startsWith("gbt"));
+    if(!hasGBT){
+      perio.notes.push(defaultStudyNote("GBT (Guided Biofilm Therapy)"));
+    }
+  }
+
+  function defaultMoreLists(){
+    return [
+      {id:newId('list'), title:"Foods Abdullah Likes", calendarButtons:false, categories:[
+        {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
+      ]},
+      {id:newId('list'), title:"Foods We Usually Eat", calendarButtons:false, categories:[
+        {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
+      ]},
+      {id:newId('list'), title:"To-Do List", calendarButtons:true, categories:[
+        {name:"", items:[]}
+      ]},
+      {id:newId('list'), title:"Meals For The Neighbour's New Baby", calendarButtons:false, categories:[
+        {name:"", items:[]}
+      ]},
+      {id:newId('list'), title:"Neighbors", calendarButtons:false, categories:[
+        {name:"", items:[]}
+      ]},
+      {id:newId('list'), title:"Things To Buy — Home", calendarButtons:false, priceField:true, categories:[
+        {name:"Kitchen", items:[]}, {name:"Bedroom", items:[]}, {name:"Bathroom", items:[]}, {name:"Living Room", items:[]}
+      ]},
+      {id:newId('list'), title:"Things To Buy — Abdullah", calendarButtons:false, priceField:true, categories:[
+        {name:"", items:[]}
+      ]},
+      {id:newId('list'), title:"Things To Buy — Fatima", calendarButtons:false, priceField:true, categories:[
+        {name:"", items:[]}
+      ]},
+      {id:newId('list'), title:"Things To Buy — Husband", calendarButtons:false, priceField:true, categories:[
+        {name:"", items:[]}
+      ]}
+    ];
+  }
+  // v2 = added the "Neighbors" list, and made sure every "Things To Buy" list has its price field —
+  // both applied once to lists that already existed before those features did.
+  const MORE_LISTS_SEED_VERSION = 5;
+  const PRICE_FIELD_LIST_TITLES = ["Things To Buy — Home", "Things To Buy — Abdullah", "Things To Buy — Fatima", "Things To Buy — Husband"];
+  function seedMoreListsV2(merged){
+    const hasNeighbors = merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === "neighbors");
+    if(!hasNeighbors){
+      merged.moreLists.push({id:newId('list'), title:"Neighbors", calendarButtons:false, categories:[{name:"", items:[]}]});
+    }
+    merged.moreLists.forEach(l=>{
+      if(PRICE_FIELD_LIST_TITLES.includes(l.title)) l.priceField = true;
+    });
+  }
+  // v3 = one-time add of the kitchenware she listed out (not from IKEA) into "Things To Buy —
+  // Home" -> Kitchen. Matched case-insensitively against existing item text so re-running this
+  // (or her adding one herself in the meantime) never duplicates an item.
+  const KITCHEN_ITEMS_SEED_V3 = [
+    "Stainless steel knife",
+    "Stainless steel frying pan",
+    "Stainless steel pot set — 3 pots with lids",
+    "Wood cutting/chopping board",
+    "Small plates (x2)",
+    "Dinner plates (x2)",
+    "Mugs (x2)"
+  ];
+  function seedMoreListsV3(merged){
+    const homeList = merged.moreLists.find(l => (l.title||"").trim().toLowerCase() === "things to buy — home");
+    if(!homeList) return;
+    let kitchenCat = homeList.categories.find(c => (c.name||"").trim().toLowerCase() === "kitchen");
+    if(!kitchenCat){
+      kitchenCat = {name:"Kitchen", items:[]};
+      homeList.categories.unshift(kitchenCat);
+    }
+    const existing = new Set(kitchenCat.items.map(it => (it.text||"").trim().toLowerCase()));
+    KITCHEN_ITEMS_SEED_V3.forEach(text=>{
+      if(!existing.has(text.trim().toLowerCase())){
+        kitchenCat.items.push({text, done:false, price:''});
+      }
+    });
+  }
+
+  // v4 = one-time split of "Things To Buy — Fatima" into its own named sections (each with its
+  // own price boxes, same as before since price is per-list not per-category), plus the specific
+  // items she dictated into Skin Care, Makeup, Clothes and Hijab. Jewelry and Bathroom Essentials
+  // are added as empty sections, ready for her to fill in. Adding a category never touches one
+  // that already exists (by name, case-insensitive), and adding an item never duplicates one
+  // already sitting in that category — safe to re-run.
+  const FATIMA_LIST_CATEGORIES_V4 = ["Skin Care", "Makeup", "Clothes", "Jewelry", "Bathroom Essentials", "Hijab"];
+  const FATIMA_LIST_ITEMS_V4 = {
+    "skin care": ["Skin tint (with SPF)"],
+    "makeup": ["Blush", "Lipstick", "Skin tint", "Bronzer", "Face powder", "Foundation", "Lip liner"],
+    "clothes": [
+      "Two cord (corduroy) trousers",
+      "Two tops",
+      "Black jeans",
+      "Wide leg work trousers — burgundy",
+      "Wide leg work trousers — black",
+      "Wide leg work trousers — cream",
+      "Wide leg work trousers — brown"
+    ],
+    "hijab": ["Hijab pins"]
+  };
+  function seedMoreListsV4(merged){
+    const list = merged.moreLists.find(l => (l.title||"").trim().toLowerCase() === "things to buy — fatima");
+    if(!list) return;
+    // drop the old nameless placeholder category if it's still empty, so it doesn't sit at the
+    // bottom as a stray unlabeled section once real named ones exist
+    list.categories = list.categories.filter(c => (c.name||"").trim() || (c.items||[]).length);
+    FATIMA_LIST_CATEGORIES_V4.forEach(name=>{
+      const key = name.toLowerCase();
+      let cat = list.categories.find(c => (c.name||"").trim().toLowerCase() === key);
+      if(!cat){
+        cat = {name, items:[]};
+        list.categories.push(cat);
+      }
+      const wanted = FATIMA_LIST_ITEMS_V4[key];
+      if(wanted){
+        const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
+        wanted.forEach(text=>{
+          if(!existing.has(text.trim().toLowerCase())){
+            cat.items.push({text, done:false, price:''});
+          }
+        });
+      }
+    });
+  }
+
+  // v5 = one-time add of "Chaddar" into "Things To Buy — Fatima" -> Hijab.
+  function seedMoreListsV5(merged){
+    const list = merged.moreLists.find(l => (l.title||"").trim().toLowerCase() === "things to buy — fatima");
+    if(!list) return;
+    let cat = list.categories.find(c => (c.name||"").trim().toLowerCase() === "hijab");
+    if(!cat){
+      cat = {name:"Hijab", items:[]};
+      list.categories.push(cat);
+    }
+    const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
+    if(!existing.has("chaddar")){
+      cat.items.push({text:"Chaddar", done:false, price:''});
+    }
+  }
+
+  // Prayer times for Grays, Essex (RM17) — calculated fresh from the sun's position for each
+  // exact date, rather than a fixed table, so every week (including ones added in future months)
+  // gets correct times automatically with nothing to look up by hand. Muslim World League angles
+  // (Fajr 18°, Isha 17°), Shafi Asr, UK clock-change rules for BST — calibrated to match
+  // IslamicFinder's published Grays times to within a minute. Each entry is "start–end", end being
+  // the next prayer's start (Isha's end being the following day's Fajr). Applied once per week the
+  // first time that week appears — appended onto whatever's already in that hour box, never
+  // replacing it, since a prayer often lands alongside an existing routine entry — so editing or
+  // clearing a prayer line afterwards sticks.
+  const PRAYER_LAT = 51.4776, PRAYER_LNG = 0.3232; // Grays, Essex, RM17
+  const PRAYER_ANGLES = { fajr: 18, isha: 17, asrFactor: 1 }; // Muslim World League, Shafi Asr
+  const PRAYER_CAL = { fajr: 3, dhuhr: 0, asr: 0, maghrib: 1, isha: 1 }; // minute-level calibration vs IslamicFinder
+
+  function isBST(dateObj){
+    // UK clocks go forward the last Sunday of March, back the last Sunday of October (both 01:00 UTC)
+    const year = dateObj.getFullYear();
+    const lastSunday = (monthIdx)=>{
+      const d = new Date(Date.UTC(year, monthIdx+1, 0));
+      return d.getUTCDate() - d.getUTCDay();
+    };
+    const start = new Date(Date.UTC(year, 2, lastSunday(2), 1, 0, 0));
+    const end = new Date(Date.UTC(year, 9, lastSunday(9), 1, 0, 0));
+    const t = new Date(Date.UTC(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), 12, 0, 0));
+    return t >= start && t < end;
+  }
+  function prayerTimesForDate(dateObj){
+    // Standard sun-position method (the same approach behind most prayer-time apps/sites).
+    const dtr = a=> a*Math.PI/180, rtd = r=> r*180/Math.PI;
+    const dsin = a=> Math.sin(dtr(a)), dcos = a=> Math.cos(dtr(a)), dtan = a=> Math.tan(dtr(a));
+    const darcsin = x=> rtd(Math.asin(x)), darccos = x=> rtd(Math.acos(x));
+    const darctan2 = (y,x)=> rtd(Math.atan2(y,x)), darccot = x=> rtd(Math.atan2(1,x));
+    const fixAngle = a=>{ a = a % 360; return a<0 ? a+360 : a; };
+    const fixHour = a=>{ a = a % 24; return a<0 ? a+24 : a; };
+    const julian = (year,month,day)=>{
+      if(month<=2){ year -= 1; month += 12; }
+      const A = Math.floor(year/100), B = 2-A+Math.floor(A/4);
+      return Math.floor(365.25*(year+4716)) + Math.floor(30.6001*(month+1)) + day + B - 1524.5;
+    };
+    const sunPosition = jd=>{
+      const D = jd - 2451545.0;
+      const g = fixAngle(357.529 + 0.98560028*D);
+      const q = fixAngle(280.459 + 0.98564736*D);
+      const L = fixAngle(q + 1.915*dsin(g) + 0.020*dsin(2*g));
+      const e = 23.439 - 0.00000036*D;
+      let RA = darctan2(dcos(e)*dsin(L), dcos(L))/15;
+      RA = fixHour(RA);
+      return { decl: darcsin(dsin(e)*dsin(L)), eqt: q/15 - RA };
+    };
+    const jDate = julian(dateObj.getFullYear(), dateObj.getMonth()+1, dateObj.getDate()) - PRAYER_LNG/(15*24);
+    const midDay = time=> fixHour(12 - sunPosition(jDate+time).eqt);
+    const sunAngleTime = (angle, time, ccw)=>{
+      const decl = sunPosition(jDate+time).decl;
+      const noon = midDay(time);
+      const t = 1/15 * darccos((-dsin(angle) - dsin(decl)*dsin(PRAYER_LAT)) / (dcos(decl)*dcos(PRAYER_LAT)));
+      return noon + (ccw ? -t : t);
+    };
+    const asrTime = (factor, time)=>{
+      const decl = sunPosition(jDate+time).decl;
+      const angle = -darccot(factor + dtan(Math.abs(PRAYER_LAT-decl)));
+      return sunAngleTime(angle, time, false);
+    };
+    let times = { fajr:5, dhuhr:12, asr:13, maghrib:18, isha:18 };
+    for(let iter=0; iter<2; iter++){
+      const f = {}; Object.keys(times).forEach(k=> f[k]=times[k]/24);
+      times = {
+        fajr: sunAngleTime(PRAYER_ANGLES.fajr, f.fajr, true),
+        dhuhr: midDay(f.dhuhr),
+        asr: asrTime(PRAYER_ANGLES.asrFactor, f.asr),
+        maghrib: sunAngleTime(0.833, f.maghrib, false),
+        isha: sunAngleTime(PRAYER_ANGLES.isha, f.isha, false)
+      };
+    }
+    const tzAdj = (isBST(dateObj) ? 1 : 0) - PRAYER_LNG/15;
+    Object.keys(times).forEach(k=> times[k] += tzAdj);
+    times.fajr += PRAYER_CAL.fajr/60; times.dhuhr += PRAYER_CAL.dhuhr/60; times.asr += PRAYER_CAL.asr/60;
+    times.maghrib += PRAYER_CAL.maghrib/60; times.isha += PRAYER_CAL.isha/60;
+    return times;
+  }
+  function formatPrayerHM(t){
+    t = (((t % 24)+24)%24) + 0.5/60;
+    let h = Math.floor(t) % 24;
+    const m = Math.floor((t - Math.floor(t)) * 60);
+    const period = h < 12 ? "AM" : "PM";
+    let disp = h % 12; if(disp === 0) disp = 12;
+    return `${disp}:${String(m).padStart(2,'0')} ${period}`;
+  }
+  function prayerHourBucket(t){
+    const h = Math.floor(((t % 24)+24)%24);
+    const period = h < 12 ? "AM" : "PM";
+    let disp = h % 12; if(disp === 0) disp = 12;
+    return `${disp}:00 ${period}`;
+  }
+  function applyPrayerTimesToWeek(d, weekKey){
+    d.prayerSeededWeeks = d.prayerSeededWeeks || [];
+    if(d.prayerSeededWeeks.includes(weekKey)) return;
+    if(!d.routineWeeks[weekKey]) return;
+    const week = d.routineWeeks[weekKey];
+    const weekDates = weekDatesFromMonday(new Date(weekKey + 'T00:00:00'));
+    DAYS.forEach(day=>{
+      const dateObj = weekDates[day];
+      const t = prayerTimesForDate(dateObj);
+      const nextDay = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate()+1);
+      const nextFajr = prayerTimesForDate(nextDay).fajr;
+      const prayers = [
+        {name:"Fajr", start:t.fajr, end:t.dhuhr},
+        {name:"Dhuhr", start:t.dhuhr, end:t.asr},
+        {name:"Asr", start:t.asr, end:t.maghrib},
+        {name:"Maghrib", start:t.maghrib, end:t.isha},
+        {name:"Isha", start:t.isha, end:nextFajr, endNextDay:true}
+      ];
+      if(!week[day]) week[day] = { _spans:{}, _split:{}, _drawing:"" };
+      prayers.forEach(p=>{
+        const hour = prayerHourBucket(p.start);
+        const endStr = formatPrayerHM(p.end) + (p.endNextDay ? " (next day)" : "");
+        const snippet = `${p.name} ${formatPrayerHM(p.start)}–${endStr}`;
+        if(!week[day][hour] || typeof week[day][hour] !== "object") week[day][hour] = {mama:"", baby:""};
+        const cell = week[day][hour];
+        const existing = (cell.mama || "").trim();
+        cell.mama = existing ? existing + " · " + snippet : snippet;
+      });
+    });
+    d.prayerSeededWeeks.push(weekKey);
+  }
+  function applyPrayerTimesToAllWeeks(d){
+    Object.keys(d.routineWeeks).forEach(wk=> applyPrayerTimesToWeek(d, wk));
+  }
+
+  // Food is tracked per person by initials: FA (Fatima), AB (Abdullah), FS (husband).
+  const FOOD_PEOPLE = [
+    {key:"FA", label:"FA", placeholder:"What you're making"},
+    {key:"AB", label:"AB", placeholder:"What Abdullah's having"},
+    {key:"FS", label:"FS", placeholder:"What he's having"}
+  ];
+  const FOOD_SEED_VERSION = 1; // seeds husband's (FS) breakfast as "Shake" once, only where empty
+
+  function defaultData(){
+    const mondayISO = isoDate(mondayOfWeek(new Date()));
+    const routineWeeks = {};
+    routineWeeks[mondayISO] = emptyWeekRoutine();
+    const recurring = {};
+    DAYS.forEach(d=>{ recurring[d] = toddlerRoutineDayV2(); });
+    const food = {};
+    MEALS.forEach(m=>{
+      food[m] = {};
+      DAYS.forEach(d=>{ food[m][d] = {FA:"", AB:"", FS: (m === "Breakfast" ? "Shake" : "")}; });
+    });
+    return {
+      urgent: [], urgentGrocery: [], thingsToDo: [], vintedItems: [], routineWeeks, recurring, toddlerSeedVersion: TODDLER_SEED_VERSION,
+      food, foodSeedVersion: FOOD_SEED_VERSION, prayerSeededWeeks: [], routineCellVersion: ROUTINE_CELL_VERSION,
+      journal: [], calendarLog: [], more: "", moreDrawing: "", moreLists: defaultMoreLists(), moreListsSeedVersion: MORE_LISTS_SEED_VERSION,
+      study: {topics: defaultStudyTopics()}, studySeedVersion: STUDY_SEED_VERSION
+    };
+  }
+
+  let data = load();
+  applyRecurringToAllWeeks();
+  applyPrayerTimesToAllWeeks(data);
+  // One-time grocery items added 17 Oct 2026 — put at the top of the urgent grocery list, in
+  // this order, once per browser (a separate flag key so it never re-adds after she ticks or
+  // removes them)
+  (function seedGroceryOct17(){
+    const FLAG = STORE_KEY + ':grocerySeed-2026-10-17';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const items = ["Bananas", "Milk", "Abdullah's formula milk", "Boneless chicken – 1 kg", "Chicken with bones – 1 kg"];
+      const have = new Set(data.urgentGrocery.map(it => (it.text || '').trim().toLowerCase()));
+      const toAdd = items.filter(t => !have.has(t.toLowerCase())).map(t => ({text: t, done: false}));
+      data.urgentGrocery = toAdd.concat(data.urgentGrocery);
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
+  (function seedToDoOct17(){
+    const FLAG = STORE_KEY + ':todoSeed-2026-10-17';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      if(!data.thingsToDo.some(it => (it.text||'').trim().toLowerCase() === "call emma's mother")){
+        data.thingsToDo.unshift({text: "Call Emma's mother", done: false});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
+  // Second batch added 17 Oct 2026 (16:26): juice + winter hat at the end of the grocery list,
+  // Greggs at the top of things to do
+  // Added 21 Oct 2026: Pepsi cans at the end of the urgent grocery list, and Lego for Abdullah in
+  // "Things To Buy — Abdullah" (top of the list, like items she adds herself)
+  (function seedOct21(){
+    const FLAG = STORE_KEY + ':seed-2026-10-21';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const has = (arr, t) => arr.some(it => (it.text||'').trim().toLowerCase() === t.toLowerCase());
+      if(!has(data.urgentGrocery, "Pepsi cans")) data.urgentGrocery.push({text: "Pepsi cans", done: false});
+      const kidsList = data.moreLists.find(l => (l.title||'').trim().toLowerCase() === "things to buy — abdullah");
+      if(kidsList){
+        const cat = kidsList.categories[0];
+        if(!has(cat.items, "Lego for children")) cat.items.unshift({text: "Lego for children", done: false, price: ''});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
+  (function seedOct17b(){
+    const FLAG = STORE_KEY + ':seed-2026-10-17b';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const has = (arr, t) => arr.some(it => (it.text||'').trim().toLowerCase() === t.toLowerCase());
+      ["Abdullah's juice", "Winter hat for Abdullah (have a look)"].forEach(t=>{
+        if(!has(data.urgentGrocery, t)) data.urgentGrocery.push({text: t, done: false});
+      });
+      if(!has(data.thingsToDo, "Go to Greggs")) data.thingsToDo.unshift({text: "Go to Greggs", done: false});
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
+  save();
+
+  function load(){
+    try{
+      const raw = localStorage.getItem(STORE_KEY);
+      if(!raw) return defaultData();
+      return normalizeSaved(JSON.parse(raw));
+    }catch(e){ return defaultData(); }
+  }
+  // Turns saved data (from this browser, a backup file, or another device via sync) into the
+  // current shape: fills anything missing, drops anything unsafe, runs the one-time upgrades.
+  // Throws if the data can't be read, rather than quietly starting from empty — synced or restored
+  // data that fails must never replace what's there.
+  function normalizeSaved(saved){
+    if(!saved || typeof saved !== 'object' || Array.isArray(saved)) throw new Error("Not planner data");
+    const merged = defaultData();
+    if(Array.isArray(saved.urgent)) merged.urgent = saved.urgent;
+    if(Array.isArray(saved.urgentGrocery)) merged.urgentGrocery = saved.urgentGrocery;
+    if(Array.isArray(saved.thingsToDo)) merged.thingsToDo = saved.thingsToDo;
+    if(Array.isArray(saved.vintedItems)){
+      merged.vintedItems = saved.vintedItems.filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, posted: !!it.posted, sold: !!it.sold}));
+    }
+    if(Array.isArray(saved.journal)){
+      merged.journal = saved.journal.filter(e => e && typeof e === 'object').map(e => {
+        const entry = {dateISO: (typeof e.dateISO === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(e.dateISO)) ? e.dateISO : '', date: typeof e.date === 'string' ? e.date : ''};
+        if(e.image){ entry.image = safeImage(e.image); } else { entry.text = typeof e.text === 'string' ? e.text : ''; }
+        return entry;
+      }).filter(e => e.image !== '');
+    }
+    if(Array.isArray(saved.calendarLog)) merged.calendarLog = saved.calendarLog;
+    if(typeof saved.more === "string") merged.more = saved.more;
+    if(typeof saved.moreDrawing === "string") merged.moreDrawing = safeImage(saved.moreDrawing);
+    if(saved.recurring && typeof saved.recurring === "object"){
+      DAYS.forEach(d=>{
+        const rec = saved.recurring[d];
+        if(rec && typeof rec === "object") merged.recurring[d] = rec;
+      });
+    }
+    if(saved.routineWeeks && typeof saved.routineWeeks === "object"){
+      Object.keys(saved.routineWeeks).forEach(wk=>{
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(wk)) return;
+        const oldWeek = saved.routineWeeks[wk];
+        if(!oldWeek || typeof oldWeek !== "object") return;
+        const week = merged.routineWeeks[wk] || emptyWeekRoutine();
+        DAYS.forEach(d=>{
+          const old = oldWeek[d];
+          if(old && typeof old === "object"){
+            HOURS.forEach(h=>{
+              const val = old[h];
+              if(typeof val === "string") week[d][h] = val; // legacy string cell — split further down
+              else if(val && typeof val === "object") week[d][h] = { mama: val.mama || "", baby: val.baby || "" };
+            });
+            if(old._spans && typeof old._spans === "object") week[d]._spans = old._spans;
+            if(old._split && typeof old._split === "object") week[d]._split = old._split;
+            if(typeof old._drawing === "string") week[d]._drawing = safeImage(old._drawing);
+          }
+        });
+        merged.routineWeeks[wk] = week;
+      });
+    } else if(saved.routine && typeof saved.routine === "object"){
+      // legacy single-template shape (pre-multi-week) — migrate into this week
+      const mondayISO = isoDate(mondayOfWeek(new Date()));
+      const week = merged.routineWeeks[mondayISO] || emptyWeekRoutine();
+      DAYS.forEach(d=>{
+        const old = saved.routine[d];
+        if(old && typeof old === "object"){
+          HOURS.forEach(h=>{ if(typeof old[h] === "string") week[d][h] = old[h]; });
+        } else if(typeof old === "string" && old.trim()){
+          week[d]["9:00 AM"] = old;
+        }
+      });
+      merged.routineWeeks[mondayISO] = week;
+    }
+    if(saved.food){
+      MEALS.forEach(m=>{
+        if(saved.food[m]){
+          DAYS.forEach(d=>{
+            const old = saved.food[m][d];
+            if(!old) return;
+            if(typeof old.FA === "string" || typeof old.AB === "string" || typeof old.FS === "string"){
+              // already the FA/AB/FS shape
+              merged.food[m][d].FA = old.FA || "";
+              merged.food[m][d].AB = old.AB || "";
+              merged.food[m][d].FS = old.FS || "";
+            } else {
+              // legacy {couple, baby} shape — carry her existing notes across, FS stays blank (seeded below)
+              merged.food[m][d].FA = old.couple || "";
+              merged.food[m][d].AB = old.baby || "";
+              merged.food[m][d].FS = "";
+            }
+          });
+        }
+      });
+    }
+    const priorFoodSeed = (typeof saved.foodSeedVersion === "number") ? saved.foodSeedVersion : 0;
+    if(priorFoodSeed < FOOD_SEED_VERSION){
+      DAYS.forEach(d=>{
+        if(!merged.food.Breakfast[d].FS || !merged.food.Breakfast[d].FS.trim()){
+          merged.food.Breakfast[d].FS = "Shake";
+        }
+      });
+    }
+    merged.foodSeedVersion = FOOD_SEED_VERSION;
+    if(Array.isArray(saved.prayerSeededWeeks)){
+      merged.prayerSeededWeeks = saved.prayerSeededWeeks.slice();
+    } else if(typeof saved.prayerSeedVersion === "number" && saved.prayerSeedVersion >= 1){
+      // legacy: the old fixed table had already been applied to this one week — don't re-append it
+      merged.prayerSeededWeeks = ["2026-08-31"];
+    } else {
+      merged.prayerSeededWeeks = [];
+    }
+    if(Array.isArray(saved.moreLists)){
+      merged.moreLists = saved.moreLists.filter(l => l && typeof l === 'object' && typeof l.title === 'string').map(l => ({
+        id: safeId(l.id, 'list'),
+        title: l.title,
+        calendarButtons: !!l.calendarButtons,
+        priceField: !!l.priceField,
+        categories: (Array.isArray(l.categories) && l.categories.length ? l.categories : [{name:'', items:[]}]).map(c => ({
+          name: (c && typeof c.name === 'string') ? c.name : '',
+          items: (c && Array.isArray(c.items) ? c.items : []).filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, done: !!it.done, price: (typeof it.price === 'string') ? it.price : ''}))
+        }))
+      }));
+    }
+    const priorMoreListsSeed = (typeof saved.moreListsSeedVersion === "number") ? saved.moreListsSeedVersion : 1;
+    if(priorMoreListsSeed < 2){
+      seedMoreListsV2(merged);
+    }
+    if(priorMoreListsSeed < 3){
+      seedMoreListsV3(merged);
+    }
+    if(priorMoreListsSeed < 4){
+      seedMoreListsV4(merged);
+    }
+    if(priorMoreListsSeed < 5){
+      seedMoreListsV5(merged);
+    }
+    merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
+    if(saved.study && Array.isArray(saved.study.topics)){
+      merged.study.topics = saved.study.topics.filter(t => t && typeof t.title === 'string').map(t => ({
+        id: safeId(t.id, 'topic'),
+        title: t.title,
+        notes: (Array.isArray(t.notes) ? t.notes : []).filter(n => n && typeof n.title === 'string').map(n => ({
+          id: safeId(n.id, 'note'),
+          title: n.title,
+          text: typeof n.text === 'string' ? n.text : '',
+          drawing: safeImage(n.drawing),
+          images: Array.isArray(n.images) ? n.images.map(safeImage).filter(Boolean) : []
+        }))
+      }));
+    }
+    const priorStudySeed = (typeof saved.studySeedVersion === "number") ? saved.studySeedVersion : 0;
+    if(priorStudySeed < STUDY_SEED_VERSION){
+      seedStudyV1(merged);
+    }
+    merged.studySeedVersion = STUDY_SEED_VERSION;
+    const priorSeedVersion = (typeof saved.toddlerSeedVersion === "number") ? saved.toddlerSeedVersion : 1;
+    if(priorSeedVersion < TODDLER_SEED_VERSION){
+      migrateToddlerRoutineV1toV2(merged);
+    }
+    merged.toddlerSeedVersion = TODDLER_SEED_VERSION;
+    const priorRoutineCellVersion = (typeof saved.routineCellVersion === "number") ? saved.routineCellVersion : 1;
+    if(priorRoutineCellVersion < ROUTINE_CELL_VERSION){
+      migrateRoutineCellsToSplit(merged);
+    }
+    merged.routineCellVersion = ROUTINE_CELL_VERSION;
+    return merged;
+  }
+
+  // A failed save (storage full, or storage blocked) used to throw silently, so later typing was
+  // lost without any sign. Now it keeps a warning on screen until a save goes through again.
+  function save(){
+    const status = document.getElementById('saveStatus');
+    const json = JSON.stringify(data);
+    try{
+      localStorage.setItem(STORE_KEY, json);
+    }catch(e){
+      // on the website the server still gets the change, so it's safe there even when this
+      // browser's own storage is full
+      schedulePush();
+      document.getElementById('saveWarning').hidden = sync.enabled;
+      status.textContent = sync.enabled ? "Saved online (this device's storage is full)" : "Not saved — storage full";
+      clearTimeout(save._t);
+      updateStorageMeter(json.length);
+      return false;
+    }
+    schedulePush();
+    document.getElementById('saveWarning').hidden = true;
+    status.textContent = "Saved just now";
+    clearTimeout(save._t);
+    save._t = setTimeout(()=>{ status.textContent = ""; }, 1800);
+    updateStorageMeter(json.length);
+    return true;
+  }
+  function updateStorageMeter(chars){
+    const el = document.getElementById('storageMeter');
+    if(!el) return;
+    const pct = Math.min(100, Math.round(chars / STORAGE_BUDGET_CHARS * 100));
+    el.classList.toggle('full', pct >= 80);
+    el.innerHTML = `Storage about ${pct}% full${pct >= 80 ? ' — remove some photos or drawings soon' : ''}<div class="storage-bar"><span style="width:${pct}%"></span></div>`;
+  }
+  function renderLastBackup(){
+    const el = document.getElementById('lastBackup');
+    if(!el) return;
+    let at = 0;
+    try{ at = Number(localStorage.getItem(LAST_BACKUP_KEY)) || 0; }catch(e){}
+    if(!at){
+      el.textContent = sync.enabled ? "No backup file yet (your data is also saved online)." : "No backup downloaded yet — worth doing now.";
+      el.classList.toggle('overdue', !sync.enabled);
+      return;
+    }
+    const days = Math.floor((Date.now() - at) / 86400000);
+    el.textContent = "Last backup: " + (days === 0 ? "today" : days === 1 ? "yesterday" : days + " days ago");
+    // with sync the server already holds a copy, so a file backup is only nudged monthly
+    el.classList.toggle('overdue', days >= (sync.enabled ? 30 : BACKUP_OVERDUE_DAYS));
+  }
+
+  // Undo for anything deleted or replaced: snapshot everything first, make the change, then offer
+  // an "Undo" for a few seconds that puts the snapshot back exactly as it was.
+  function withUndo(message, change){
+    const before = JSON.stringify(data);
+    change();
+    save();
+    renderAll();
+    showToast(message, "Undo", ()=>{
+      data = JSON.parse(before);
+      save(); renderAll();
+    });
+  }
+  // A short message at the bottom of the screen, with an optional button (Undo, etc.)
+  function showToast(message, actionLabel, action){
+    const toast = document.getElementById('undoToast');
+    const btn = toast.querySelector('.undo-btn');
+    toast.querySelector('.undo-msg').textContent = message;
+    btn.hidden = !actionLabel;
+    btn.textContent = actionLabel || '';
+    btn.onclick = ()=>{
+      toast.hidden = true;
+      clearTimeout(showToast._t);
+      if(action) action();
+    };
+    toast.hidden = false;
+    clearTimeout(showToast._t);
+    showToast._t = setTimeout(()=>{ toast.hidden = true; }, actionLabel ? 8000 : 4000);
+  }
+
+  // Shrinks a photo to PHOTO_MAX_DIM on its longest side as a JPEG, on a white background (JPEG has
+  // no transparency). Keeps the original if that wouldn't actually make it smaller.
+  function compressImageDataUrl(src){
+    return new Promise(resolve=>{
+      const img = new Image();
+      img.onload = ()=>{
+        try{
+          const scale = Math.min(1, PHOTO_MAX_DIM / Math.max(img.naturalWidth, img.naturalHeight));
+          const w = Math.max(1, Math.round(img.naturalWidth * scale));
+          const h = Math.max(1, Math.round(img.naturalHeight * scale));
+          const canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const out = canvas.toDataURL('image/jpeg', PHOTO_QUALITY);
+          resolve(out.length < src.length ? out : src);
+        }catch(e){ resolve(src); }
+      };
+      img.onerror = ()=> resolve(src);
+      img.src = src;
+    });
+  }
+  function readImageFileCompressed(file){
+    return new Promise(resolve=>{
+      const reader = new FileReader();
+      reader.onload = ()=> compressImageDataUrl(reader.result).then(resolve);
+      reader.onerror = ()=> resolve(null);
+      reader.readAsDataURL(file);
+    });
+  }
+  // One pass over photos already stored before compression existed, shrinking any large ones —
+  // frees up space for people who'd already attached full-size camera photos.
+  async function shrinkStoredPhotos(){
+    let changed = false;
+    for(const topic of data.study.topics){
+      for(const note of topic.notes){
+        for(let i = 0; i < (note.images || []).length; i++){
+          const src = note.images[i];
+          if(src.length < 400000) continue;
+          const smaller = await compressImageDataUrl(src);
+          if(smaller !== src && note.images[i] === src){ note.images[i] = smaller; changed = true; }
+        }
+      }
+    }
+    if(changed){ save(); renderStudy(); }
+  }
+
+  // ---- Sync between devices (website only) ----
+  // On the Petal Planner website every change is also saved on the server, and each device checks
+  // for changes from the others every few seconds, so phone, tablet and laptop all show the same
+  // thing. Inside claude.ai there is no server: none of this switches on and the page works on its
+  // own as before. Without a connection, changes wait on the device and go up once it's back.
+  //
+  // Each device remembers the last copy it shared with the server ("base"). When both this
+  // device and another have changed things since then, the two sets of changes are merged by
+  // comparing each against that copy, down to single list items, so neither is lost; only if both
+  // changed the very same box does this device's version win.
+  function syncStatus(text, kind){
+    const el = document.getElementById('syncStatus');
+    el.textContent = text;
+    el.className = 'sync-status' + (kind ? ' ' + kind : '');
+    el.hidden = !text;
+  }
+  function idbOpen(){
+    if(!idbOpen._p){
+      idbOpen._p = new Promise((resolve, reject)=>{
+        const req = indexedDB.open('petal-sync', 1);
+        req.onupgradeneeded = ()=> req.result.createObjectStore('kv');
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> reject(req.error);
+      });
+    }
+    return idbOpen._p;
+  }
+  // the shared copy is kept in IndexedDB rather than localStorage, so it doesn't use up the
+  // space the planner itself needs there
+  async function idbGet(key){
+    try{
+      const db = await idbOpen();
+      return await new Promise(resolve=>{
+        const req = db.transaction('kv').objectStore('kv').get(key);
+        req.onsuccess = ()=> resolve(req.result);
+        req.onerror = ()=> resolve(undefined);
+      });
+    }catch(e){ return undefined; }
+  }
+  async function idbSet(key, value){
+    try{
+      const db = await idbOpen();
+      await new Promise(resolve=>{
+        const tx = db.transaction('kv', 'readwrite');
+        tx.objectStore('kv').put(value, key);
+        tx.oncomplete = resolve; tx.onerror = resolve;
+      });
+    }catch(e){}
+  }
+  function deepEqual(a, b){
+    if(a === b) return true;
+    if(typeof a !== 'object' || typeof b !== 'object' || a === null || b === null) return false;
+    if(Array.isArray(a) !== Array.isArray(b)) return false;
+    if(Array.isArray(a)){
+      if(a.length !== b.length) return false;
+      for(let i = 0; i < a.length; i++) if(!deepEqual(a[i], b[i])) return false;
+      return true;
+    }
+    const ka = Object.keys(a), kb = Object.keys(b);
+    if(ka.length !== kb.length) return false;
+    for(const k of ka){
+      if(!Object.prototype.hasOwnProperty.call(b, k) || !deepEqual(a[k], b[k])) return false;
+    }
+    return true;
+  }
+  function isPlainObject(v){ return !!v && typeof v === 'object' && !Array.isArray(v); }
+  // What makes a list entry the same entry on both devices: its id where it has one (lists,
+  // study topics), otherwise its wording (tasks, grocery items), name (list sections) or title.
+  function itemKey(v){
+    if(isPlainObject(v)){
+      if(typeof v.id === 'string') return 'id:' + v.id;
+      if(typeof v.text === 'string') return 'text:' + (v.dateISO || '') + ':' + v.text;
+      if(typeof v.image === 'string') return 'image:' + (v.dateISO || '') + ':' + v.image.length + ':' + v.image.slice(-48);
+      if(typeof v.name === 'string') return 'name:' + v.name;
+      if(typeof v.title === 'string') return 'title:' + v.title + ':' + (v.date || '');
+      return 'json:' + JSON.stringify(v);
+    }
+    if(typeof v === 'string' && v.length > 200) return 'str:' + v.length + ':' + v.slice(-48);
+    return 'value:' + JSON.stringify(v);
+  }
+  // Merges two edited versions of a list entry by entry, so an item added on one device and a
+  // different item added or ticked on another both survive. Entries added on the other device go
+  // in at the same place they have there.
+  function mergeArrays(base, local, remote){
+    base = Array.isArray(base) ? base : [];
+    const keysOf = arr=>{
+      const seen = {};
+      return arr.map(v=>{ const k = itemKey(v); seen[k] = (seen[k] || 0) + 1; return k + '#' + seen[k]; });
+    };
+    const bk = keysOf(base), lk = keysOf(local), rk = keysOf(remote);
+    const baseMap = new Map(bk.map((k, i)=> [k, base[i]]));
+    const remoteMap = new Map(rk.map((k, i)=> [k, remote[i]]));
+    const localKeys = new Set(lk);
+    const out = [];
+    lk.forEach((k, i)=>{
+      const value = local[i];
+      if(remoteMap.has(k)){ out.push({k, v: merge3(baseMap.get(k), value, remoteMap.get(k))}); return; }
+      // gone on the other device: removed there, unless it's new or changed here
+      if(!baseMap.has(k) || !deepEqual(baseMap.get(k), value)) out.push({k, v: value});
+    });
+    rk.forEach((k, i)=>{
+      if(localKeys.has(k)) return;
+      const value = remote[i];
+      // gone here: removed here, unless it's new or changed on the other device
+      if(baseMap.has(k) && deepEqual(baseMap.get(k), value)) return;
+      let pos = 0;
+      for(let j = i - 1; j >= 0; j--){
+        const at = out.findIndex(o=> o.k === rk[j]);
+        if(at !== -1){ pos = at + 1; break; }
+      }
+      out.splice(pos, 0, {k, v: value});
+    });
+    return out.map(o=> o.v);
+  }
+  function merge3(base, local, remote){
+    if(deepEqual(local, remote)) return local;
+    if(base !== undefined && deepEqual(base, local)) return remote;
+    if(base !== undefined && deepEqual(base, remote)) return local;
+    if(Array.isArray(local) && Array.isArray(remote)) return mergeArrays(base, local, remote);
+    if(isPlainObject(local) && isPlainObject(remote)){
+      const b = isPlainObject(base) ? base : {};
+      const out = {};
+      new Set([...Object.keys(local), ...Object.keys(remote)]).forEach(k=>{
+        const inLocal = k in local, inRemote = k in remote;
+        if(inLocal && inRemote){ out[k] = merge3(b[k], local[k], remote[k]); return; }
+        // only on one side: either added there, or removed on the other side — removed wins
+        // unless it was changed again on the side that still has it
+        if(inLocal){ if(!(k in b) || !deepEqual(b[k], local[k])) out[k] = local[k]; return; }
+        if(!(k in b) || !deepEqual(b[k], remote[k])) out[k] = remote[k];
+      });
+      return out;
+    }
+    return local;
+  }
+  function plainCopy(value){ return JSON.parse(JSON.stringify(value)); }
+  function signedOut(){
+    syncStatus("Signed out — opening the sign-in page…", 'warn');
+    setTimeout(()=>{ location.href = '/login'; }, 800);
+  }
+  function syncProblem(){
+    syncStatus("Offline — changes are kept on this device and will sync when you're back online", 'warn');
+  }
+
+  async function syncStart(){
+    let res = null;
+    try{ res = await fetch('/api/data', {cache:'no-store', credentials:'same-origin'}); }catch(e){}
+    // The website marks every reply with an X-Petal-Planner header; anywhere else (claude.ai)
+    // there's no sync server. With no answer at all, the website's offline helper being active
+    // means this is the website opened without a connection.
+    const onSite = res
+      ? res.headers.get('X-Petal-Planner') === '1'
+      : !!(navigator.serviceWorker && navigator.serviceWorker.controller);
+    if(!onSite) return;
+    sync.enabled = true;
+    document.body.classList.add('site-mode');
+    document.getElementById('backupNote').innerHTML = 'Everything you change here <strong>syncs to all your devices</strong> where you\'re signed in. A backup file is an extra copy, just in case.';
+    renderLastBackup();
+    registerServiceWorker();
+    document.addEventListener('input', ()=>{ sync.lastLocalEdit = Date.now(); }, true);
+    setInterval(()=>{ if(document.visibilityState === 'visible') syncPull(); }, SYNC_CHECK_MS);
+    document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'visible') syncPull(); });
+    window.addEventListener('online', ()=>{ syncPull(); schedulePush(0); });
+    const saved = await idbGet('base');
+    if(saved && typeof saved.json === 'string'){
+      try{ sync.base = JSON.parse(saved.json); sync.version = saved.version; }catch(e){ sync.base = undefined; }
+    }
+    if(!res){ syncProblem(); return; }
+    if(res.status === 401){ signedOut(); return; }
+    if(!res.ok){
+      syncStatus("Can't reach the planner's database — changes are kept on this device for now", 'warn');
+      return;
+    }
+    await applyRemote(await res.json());
+  }
+
+  // Takes a copy from the server, merges in this device's changes since the last shared copy,
+  // and shows the result. Anything the server doesn't have yet then goes up with the next push.
+  async function applyRemote(remote){
+    if(remote.data === null){
+      // the very first device: what's here becomes the shared copy
+      sync.version = remote.version;
+      sync.base = undefined;
+      schedulePush(0);
+      return;
+    }
+    const current = plainCopy(data);
+    // A device syncing for the first time takes the shared copy as it is; its own starter
+    // contents are left out rather than mixed in.
+    const merged = sync.base === undefined ? remote.data : merge3(sync.base, current, remote.data);
+    let next;
+    try{ next = normalizeSaved(plainCopy(merged)); }catch(e){
+      syncStatus("Couldn't read the copy from the server — nothing on this device was changed", 'warn');
+      return;
+    }
+    sync.version = remote.version;
+    sync.base = remote.data;
+    idbSet('base', {version: remote.version, json: JSON.stringify(remote.data)});
+    data = next;
+    applyRecurringToAllWeeks();
+    applyPrayerTimesToAllWeeks(data);
+    if(!deepEqual(plainCopy(data), current)){
+      renderAllKeepingFocus();
+      loadRoutineCalendarEvents();
+    }
+    save();
+    syncStatus('✓ Synced', 'ok');
+  }
+
+  function schedulePush(delay){
+    if(!sync.enabled) return;
+    clearTimeout(sync.pushTimer);
+    sync.pushTimer = setTimeout(syncPush, delay === undefined ? 1200 : delay);
+  }
+  async function syncPush(){
+    if(!sync.enabled || sync.version === null) return;
+    if(sync.pushing){ sync.pushAgain = true; return; }
+    const json = JSON.stringify(data);
+    const current = JSON.parse(json);
+    if(sync.base !== undefined && deepEqual(current, sync.base)){ syncStatus('✓ Synced', 'ok'); return; }
+    sync.pushing = true;
+    syncStatus('Syncing…');
+    let conflict = null;
+    try{
+      const res = await fetch('/api/data', {
+        method:'PUT', credentials:'same-origin',
+        headers:{'Content-Type':'application/json', 'X-Base-Version': String(sync.version)},
+        body: json
+      });
+      if(res.status === 401){ signedOut(); return; }
+      if(res.status === 409){
+        conflict = await res.json();
+      } else {
+        if(!res.ok) throw new Error('HTTP ' + res.status);
+        const out = await res.json();
+        sync.version = out.version;
+        sync.base = current;
+        idbSet('base', {version: out.version, json});
+        syncStatus('✓ Synced', 'ok');
+      }
+    }catch(e){
+      syncProblem();
+      clearTimeout(sync.retryTimer);
+      sync.retryTimer = setTimeout(()=> schedulePush(0), 20000);
+    }finally{
+      sync.pushing = false;
+    }
+    // another device saved first: merge both sets of changes, which pushes the result
+    if(conflict) await applyRemote(conflict);
+    if(sync.pushAgain){ sync.pushAgain = false; schedulePush(0); }
+  }
+  async function syncPull(){
+    if(!sync.enabled || sync.pushing) return;
+    // leave the page alone while something is being typed; the next check catches up
+    if(Date.now() - sync.lastLocalEdit < 4000) return;
+    // until the first full copy has arrived (no connection at start-up), ask for the whole thing
+    const url = sync.version === null ? '/api/data' : '/api/data?have=' + sync.version;
+    let res;
+    try{ res = await fetch(url, {cache:'no-store', credentials:'same-origin'}); }catch(e){ syncProblem(); return; }
+    if(res.status === 401){ signedOut(); return; }
+    if(!res.ok){ syncProblem(); return; }
+    const remote = await res.json();
+    if(remote.unchanged){
+      if(sync.base === undefined || !deepEqual(plainCopy(data), sync.base)) schedulePush(0);
+      else syncStatus('✓ Synced', 'ok');
+      return;
+    }
+    if(sync.pushing) return;
+    await applyRemote(remote);
+  }
+
+  // Redraws everything after a change from another device, putting the cursor back where it was
+  // and keeping the scroll position, so the page doesn't jump about while it's being used.
+  function renderAllKeepingFocus(){
+    const el = document.activeElement;
+    let selector = null, selStart = null, selEnd = null;
+    if(el && el !== document.body && el.closest && el.closest('main')){
+      if(el.id){
+        selector = '#' + CSS.escape(el.id);
+      } else {
+        const attrs = [...el.attributes].filter(a => a.name.startsWith('data-')).map(a => `[${a.name}="${CSS.escape(a.value)}"]`).join('');
+        selector = el.tagName.toLowerCase() + (el.classList[0] ? '.' + CSS.escape(el.classList[0]) : '') + attrs;
+      }
+      try{ selStart = el.selectionStart; selEnd = el.selectionEnd; }catch(e){}
+    }
+    const scrollY = window.scrollY;
+    renderAll();
+    window.scrollTo(0, scrollY);
+    if(selector){
+      const again = document.querySelector(selector);
+      if(again){
+        again.focus({preventScroll: true});
+        try{ if(selStart !== null) again.setSelectionRange(selStart, selEnd); }catch(e){}
+      }
+    }
+  }
+
+  function registerServiceWorker(){
+    try{
+      if('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(()=>{});
+    }catch(e){}
+  }
+
+  // Coming back from connecting Google Calendar lands on /?calendar=connected#calendar: open the
+  // Calendar tab and say how it went, then tidy the address.
+  function openTabFromAddress(){
+    const target = (location.hash || '').slice(1);
+    const btn = target && document.querySelector(`.nav-btn[data-target="${CSS.escape(target)}"]`);
+    if(btn) btn.click();
+    const result = new URLSearchParams(location.search).get('calendar');
+    const messages = {connected: "Google Calendar connected", cancelled: "Google Calendar wasn't connected", failed: "Couldn't connect Google Calendar — please try again"};
+    if(messages[result]) showToast(messages[result]);
+    if(location.search || location.hash){
+      try{ history.replaceState(null, '', location.pathname); }catch(e){}
+    }
+  }
+
+  // Only real embedded images are allowed into an <img src>, and only plain ids into attributes —
+  // so a damaged or tampered backup file can't break the page or run code in it.
+  function safeImage(src){
+    return (typeof src === 'string' && /^data:image\/[a-z0-9.+-]+;base64,[A-Za-z0-9+\/=]+$/i.test(src)) ? src : '';
+  }
+  function safeId(id, prefix){
+    return (typeof id === 'string' && /^[A-Za-z0-9_-]+$/.test(id)) ? id : newId(prefix);
+  }
+
+  function setSidebar(open){
+    const nav = document.getElementById('sideNav');
+    const main = document.getElementById('mainArea');
+    const toggle = document.getElementById('sidebarToggle');
+    nav.classList.toggle('closed', !open);
+    main.classList.toggle('expanded', !open);
+    toggle.style.left = open ? '250px' : '18px';
+  }
+  function toggleSidebar(){
+    const nav = document.getElementById('sideNav');
+    setSidebar(nav.classList.contains('closed'));
+  }
+  document.addEventListener('click', function(e){
+    const nav = document.getElementById('sideNav');
+    const toggle = document.getElementById('sidebarToggle');
+    if(nav.classList.contains('closed')) return;
+    if(nav.contains(e.target) || toggle.contains(e.target)) return;
+    // on a wide screen the menu sits beside the page rather than over it, so it can stay open
+    if(window.innerWidth >= 1000) return;
+    setSidebar(false);
+  });
+
+  document.querySelectorAll('.nav-btn').forEach(btn=>{
+    btn.addEventListener('click', ()=>{
+      document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+      document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById(btn.dataset.target).classList.add('active');
+    });
+  });
+
+  // Urgent tasks
+  function renderUrgent(){
+    const list = document.getElementById('urgentList');
+    list.innerHTML = "";
+    if(data.urgent.length === 0){
+      list.innerHTML = '<li class="empty">Nothing added yet.</li>';
+      return;
+    }
+    data.urgent.forEach((item, i)=>{
+      const li = document.createElement('li');
+      if(item.done) li.classList.add('done');
+      li.innerHTML = `
+        <input type="checkbox" ${item.done ? "checked" : ""} onchange="toggleUrgent(${i})">
+        <span class="txt">${escapeHtml(item.text)}</span>
+        <button class="del" onclick="deleteUrgent(${i})">Remove</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+  function addUrgent(){
+    const input = document.getElementById('urgentInput');
+    const val = input.value.trim();
+    if(!val) return;
+    data.urgent.unshift({text: val, done:false});
+    input.value = "";
+    input.style.height = "";
+    save(); renderUrgent();
+  }
+  // box can be dragged taller/shorter by its bottom-right corner, same as the routine and list
+  // boxes; plain Enter still adds the task, Shift+Enter drops to a new line first
+  document.getElementById('urgentInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      addUrgent();
+    }
+  });
+  function toggleUrgent(i){ data.urgent[i].done = !data.urgent[i].done; save(); renderUrgent(); }
+  function deleteUrgent(i){ withUndo("Task removed", ()=>{ data.urgent.splice(i,1); }); }
+
+  // Urgent grocery items — a separate list from the tasks/docs above, just for things she
+  // urgently needs to pick up from the grocery store
+  function renderUrgentGrocery(){
+    const list = document.getElementById('urgentGroceryList');
+    list.innerHTML = "";
+    if(data.urgentGrocery.length === 0){
+      list.innerHTML = '<li class="empty">Nothing added yet.</li>';
+      return;
+    }
+    data.urgentGrocery.forEach((item, i)=>{
+      const li = document.createElement('li');
+      if(item.done) li.classList.add('done');
+      li.innerHTML = `
+        <input type="checkbox" ${item.done ? "checked" : ""} onchange="toggleUrgentGrocery(${i})">
+        <span class="txt">${escapeHtml(item.text)}</span>
+        <button class="del" onclick="deleteUrgentGrocery(${i})">Remove</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+  function addUrgentGrocery(){
+    const input = document.getElementById('urgentGroceryInput');
+    const val = input.value.trim();
+    if(!val) return;
+    data.urgentGrocery.unshift({text: val, done:false});
+    input.value = "";
+    input.style.height = "";
+    save(); renderUrgentGrocery();
+  }
+  document.getElementById('urgentGroceryInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      addUrgentGrocery();
+    }
+  });
+  function toggleUrgentGrocery(i){ data.urgentGrocery[i].done = !data.urgentGrocery[i].done; save(); renderUrgentGrocery(); }
+  function deleteUrgentGrocery(i){ withUndo("Grocery item removed", ()=>{ data.urgentGrocery.splice(i,1); }); }
+
+  // Things to do — calls, errands and small jobs, separate from urgent tasks/docs and groceries
+  function renderThingsToDo(){
+    const list = document.getElementById('thingsToDoList');
+    list.innerHTML = "";
+    if(data.thingsToDo.length === 0){
+      list.innerHTML = '<li class="empty">Nothing added yet.</li>';
+      return;
+    }
+    data.thingsToDo.forEach((item, i)=>{
+      const li = document.createElement('li');
+      if(item.done) li.classList.add('done');
+      li.innerHTML = `
+        <input type="checkbox" ${item.done ? "checked" : ""} onchange="toggleThingToDo(${i})">
+        <span class="txt">${escapeHtml(item.text)}</span>
+        <button class="del" onclick="deleteThingToDo(${i})">Remove</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+  function addThingToDo(){
+    const input = document.getElementById('thingsToDoInput');
+    const val = input.value.trim();
+    if(!val) return;
+    data.thingsToDo.unshift({text: val, done:false});
+    input.value = "";
+    input.style.height = "";
+    save(); renderThingsToDo();
+  }
+  document.getElementById('thingsToDoInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      addThingToDo();
+    }
+  });
+  function toggleThingToDo(i){ data.thingsToDo[i].done = !data.thingsToDo[i].done; save(); renderThingsToDo(); }
+  function deleteThingToDo(i){ withUndo("Removed from things to do", ()=>{ data.thingsToDo.splice(i,1); }); }
+
+  // Vinted — things at home to sell. Each item tracks two statuses independently (pictures/ad
+  // posted, and sold), rather than one done checkbox, so both can be updated as they happen.
+  function renderVinted(){
+    const list = document.getElementById('vintedList');
+    list.innerHTML = "";
+    if(data.vintedItems.length === 0){
+      list.innerHTML = '<li class="empty">Nothing added yet.</li>';
+      return;
+    }
+    data.vintedItems.forEach((item, i)=>{
+      const li = document.createElement('li');
+      li.innerHTML = `
+        <span class="txt">${escapeHtml(item.text)}</span>
+        <button class="status-btn${item.posted ? ' posted-on' : ''}" onclick="toggleVintedPosted(${i})">${item.posted ? '✓ Posted' : 'Not posted yet'}</button>
+        <button class="status-btn${item.sold ? ' sold-on' : ''}" onclick="toggleVintedSold(${i})">${item.sold ? '✓ Sold' : 'Not sold yet'}</button>
+        <button class="del" onclick="deleteVinted(${i})">Remove</button>
+      `;
+      list.appendChild(li);
+    });
+  }
+  function addVinted(){
+    const input = document.getElementById('vintedInput');
+    const val = input.value.trim();
+    if(!val) return;
+    data.vintedItems.unshift({text: val, posted:false, sold:false});
+    input.value = "";
+    input.style.height = "";
+    save(); renderVinted();
+  }
+  document.getElementById('vintedInput').addEventListener('keydown', (e)=>{
+    if(e.key === 'Enter' && !e.shiftKey){
+      e.preventDefault();
+      addVinted();
+    }
+  });
+  function toggleVintedPosted(i){ data.vintedItems[i].posted = !data.vintedItems[i].posted; save(); renderVinted(); }
+  function toggleVintedSold(i){ data.vintedItems[i].sold = !data.vintedItems[i].sold; save(); renderVinted(); }
+  function deleteVinted(i){ withUndo("Vinted item removed", ()=>{ data.vintedItems.splice(i,1); }); }
+
+  // date helpers
+  function nextDateForDay(dayName){
+    const idx = DAYS.indexOf(dayName);
+    const jsIdx = (idx+1) % 7; // Monday=1..Sunday=0
+    const today = new Date();
+    const todayJsIdx = today.getDay();
+    let diff = (jsIdx - todayJsIdx + 7) % 7;
+    const target = new Date(today.getFullYear(), today.getMonth(), today.getDate()+diff);
+    return target;
+  }
+  function shortDate(dateObj){
+    return dateObj.toLocaleDateString('en-GB', {day:'numeric', month:'short'});
+  }
+  function toDstr(dateObj){
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth()+1).padStart(2,'0');
+    const d = String(dateObj.getDate()).padStart(2,'0');
+    return `${y}${m}${d}`;
+  }
+  // A Google Calendar "new event" page with everything filled in, for when there's no direct
+  // connection: inside claude.ai, or on the website before Google Calendar is connected.
+  function googleTemplateUrl(title, dateObj, startHHMM, durationMin){
+    const [sh,sm] = startHHMM.split(':').map(Number);
+    const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), sh, sm);
+    const endDate = new Date(startDate.getTime() + (durationMin || 30) * 60000);
+    const stamp = d => `${toDstr(d)}T${String(d.getHours()).padStart(2,'0')}${String(d.getMinutes()).padStart(2,'0')}00`;
+    return `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${stamp(startDate)}/${stamp(endDate)}`;
+  }
+  function openGCal(title, dateObj, startHHMM, durationMin){
+    if(calSource === 'site'){
+      addEventViaSite(title, dateObj, startHHMM, durationMin);
+      return;
+    }
+    window.open(googleTemplateUrl(title, dateObj, startHHMM, durationMin), '_blank');
+    data.calendarLog.unshift({title, date: dateObj.toDateString()});
+    save(); renderCalLog();
+  }
+
+  // Routine — stacked weeks, each with collapsible days + hourly rows + per-entry calendar button
+  function visibleRoutineWeekKeys(){
+    // A week stays visible through the end of the calendar month its Sunday falls in —
+    // it only drops off once that month has fully passed (not simply once the week itself ends).
+    const today = new Date();
+    const currentMonthKey = today.getFullYear()*12 + today.getMonth();
+    return Object.keys(data.routineWeeks)
+      .filter(wk=>{
+        const monday = new Date(wk + 'T00:00:00');
+        const sunday = new Date(monday.getFullYear(), monday.getMonth(), monday.getDate()+6);
+        const weekMonthKey = sunday.getFullYear()*12 + sunday.getMonth();
+        return weekMonthKey >= currentMonthKey;
+      })
+      .sort();
+  }
+  function addNextRoutineWeek(){
+    const keys = Object.keys(data.routineWeeks).sort();
+    const lastKey = keys.length ? keys[keys.length-1] : isoDate(mondayOfWeek(new Date()));
+    const lastMonday = new Date(lastKey + 'T00:00:00');
+    const nextMonday = new Date(lastMonday.getFullYear(), lastMonday.getMonth(), lastMonday.getDate()+7);
+    const nextKey = isoDate(nextMonday);
+    if(!data.routineWeeks[nextKey]){
+      data.routineWeeks[nextKey] = emptyWeekRoutine();
+    }
+    applyRecurringToWeek(nextKey);
+    applyPrayerTimesToWeek(data, nextKey);
+    save();
+    renderRoutine();
+    loadRoutineCalendarEvents();
+  }
+  // One hour's entry box for a given owner (mama = her own routine, baby = Abdullah's), plus its
+  // own repeat/calendar controls. In "split" mode the box's owner is fixed to its position (left
+  // box always mama, right box always baby); in "single" mode the owner is re-derived from the
+  // text itself each time it changes (an "Abdullah:" prefix marks it his).
+  function buildEntryBox(weekKey, day, h, owner, text, mode){
+    const recEntry = data.recurring[day] && data.recurring[day][h];
+    const isRecurring = !!(recEntry && (recEntry[owner] || '').trim());
+    const ownerClass = owner === 'baby' ? 'owner-baby' : 'owner-mama';
+    const placeholder = mode === 'split' ? (owner === 'baby' ? "Abdullah's entry..." : "Your entry...") : "...";
+    return `<div class="hour-entry ${ownerClass}">
+      <textarea class="hour-text" rows="1" data-week="${weekKey}" data-day="${day}" data-hour="${h}" data-owner="${owner}" data-mode="${mode}" placeholder="${placeholder}">${escapeHtml(text)}</textarea>
+      <div class="entry-controls">
+        <button class="recur-btn${isRecurring ? ' active' : ''}" title="${isRecurring ? 'Stop repeating every week' : 'Repeat this every week'}" data-recur-week="${weekKey}" data-recur-day="${day}" data-recur-hour="${h}" data-recur-owner="${owner}">&#128257;</button>
+        <button class="cal-btn" title="Add to Google Calendar" data-cal-week="${weekKey}" data-cal-day="${day}" data-cal-hour="${h}" data-cal-owner="${owner}">&#128197;</button>
+      </div>
+    </div>`;
+  }
+  function buildEntryPlus(weekKey, day, h, otherOwner){
+    const label = otherOwner === 'baby' ? "+ Add Abdullah's entry here too" : "+ Add your own entry here too";
+    return `<button class="entry-plus" data-plus-week="${weekKey}" data-plus-day="${day}" data-plus-hour="${h}" data-plus-owner="${otherOwner}">${label}</button>`;
+  }
+  function bindEntryPlus(btn){
+    btn.addEventListener('click', ()=>{
+      const wk = btn.dataset.plusWeek, day = btn.dataset.plusDay, hour = btn.dataset.plusHour;
+      const dd = data.routineWeeks[wk][day];
+      dd._split = dd._split || {};
+      dd._split[hour] = true;
+      save();
+      renderRoutine();
+    });
+  }
+  function renderRoutine(){
+    const wrap = document.getElementById('routineList');
+    // remember which day-cards were open so re-renders (adding a week, merging hours, etc.) don't collapse everything
+    const openKeys = new Set();
+    wrap.querySelectorAll('.collapse-card.open .collapse-head').forEach(head=>{
+      openKeys.add(head.dataset.week + '|' + head.dataset.day);
+    });
+    wrap.innerHTML = "";
+    const weekKeys = visibleRoutineWeekKeys();
+    const todayKey = isoDate(mondayOfWeek(new Date()));
+    weekKeys.forEach((weekKey)=>{
+      const weekDates = weekDatesFromMonday(new Date(weekKey + 'T00:00:00'));
+      const section = document.createElement('div');
+      section.className = 'week-section';
+      const isCurrent = weekKey === todayKey;
+      section.innerHTML = `<div class="week-section-head"><h3>Week of ${shortDate(weekDates.Monday)} – ${shortDate(weekDates.Sunday)}</h3>${isCurrent ? '<span class="tag">This week</span>' : ''}</div><div class="week-days"></div>`;
+      wrap.appendChild(section);
+      const daysWrap = section.querySelector('.week-days');
+      DAYS.forEach(day=>{
+        const dayData = data.routineWeeks[weekKey][day];
+        if(!dayData._spans) dayData._spans = {};
+        if(!dayData._split) dayData._split = {};
+        const card = document.createElement('div');
+        card.className = 'collapse-card' + (openKeys.has(weekKey+'|'+day) ? ' open' : '');
+        const tag = DAY_TAGS[day] ? `<span class="tag">${DAY_TAGS[day]}</span>` : "";
+        const dateLabel = `<span class="day-date">${shortDate(weekDates[day])}</span><span class="gcal-count" data-gcal-count="${isoDate(weekDates[day])}" hidden></span>`;
+        card.innerHTML = `
+          <div class="collapse-head" data-week="${weekKey}" data-day="${day}">
+            <div><h2>${day}${dateLabel}</h2>${tag}</div>
+            <span class="chev">&#9662;</span>
+          </div>
+          <div class="collapse-body" id="body-${weekKey}-${day}">
+            <div class="gcal-day-events" data-gcal-date="${isoDate(weekDates[day])}"></div>
+            <div class="food-mini">
+              <button class="food-mini-toggle">&#127869; Food for ${day}</button>
+              <div class="food-mini-panel">
+                <div class="food-meal-row">
+                  <button class="food-meal-btn" data-meal="Breakfast">Breakfast</button>
+                  <button class="food-meal-btn" data-meal="Lunch">Lunch</button>
+                  <button class="food-meal-btn" data-meal="Dinner">Dinner</button>
+                </div>
+                <div class="food-meal-detail"></div>
+              </div>
+            </div>
+            <div class="routine-drawing-shown"></div>
+            <div class="mode-toggle">
+              <button class="mode-btn active" data-rmode="type">&#9000; Type</button>
+              <button class="mode-btn" data-rmode="pen">&#9998; Pen</button>
+            </div>
+            <div class="hourly-rows"></div>
+            <div class="routine-canvas-wrap">
+              <canvas class="routine-canvas" id="rc-${weekKey}-${day}"></canvas>
+              <div class="canvas-tools">
+                <button class="rc-clear">Clear</button>
+                <button class="rc-save">Save drawing</button>
+              </div>
+            </div>
+          </div>
+        `;
+        daysWrap.appendChild(card);
+        card.querySelector('.collapse-head').addEventListener('click', ()=>{
+          const opening = !card.classList.contains('open');
+          card.classList.toggle('open');
+          if(opening){
+            // the card was hidden when its box heights were first measured, so some may have come
+            // out too short (and clipped) — remeasure now that the content is actually visible
+            card.querySelectorAll('textarea.hour-text').forEach(ta=>{
+              ta.style.height = 'auto';
+              ta.style.height = ta.scrollHeight + 'px';
+            });
+          }
+        });
+
+        // hourly rows, folding consecutive hours that have been merged into one block. Each hour
+        // holds independent mama/baby text — normally shown as one box, but split into two side
+        // by side (stacking on narrow screens) whenever both have something in the same hour.
+        const hourlyRowsEl = card.querySelector('.hourly-rows');
+        let hi = 0;
+        while(hi < HOURS.length){
+          const h = HOURS[hi];
+          const span = Math.max(1, Math.min(dayData._spans[h] || 1, HOURS.length - hi));
+          const endIdx = hi + span;
+          const label = span > 1 ? `${h} &ndash; ${endIdx < HOURS.length ? HOURS[endIdx] : '12:00 AM'}` : h;
+          const cell = (dayData[h] && typeof dayData[h] === 'object') ? dayData[h] : {mama:"", baby:""};
+          const mamaText = cell.mama || "";
+          const babyText = cell.baby || "";
+          const forceSplit = !!(dayData._split && dayData._split[h]);
+          const showSplit = forceSplit || (mamaText.trim() && babyText.trim());
+          const row = document.createElement('div');
+          row.className = 'hour-row' + (span > 1 ? ' merged' : '');
+          let entriesHtml;
+          if(showSplit){
+            entriesHtml = buildEntryBox(weekKey, day, h, 'mama', mamaText, 'split')
+                         + buildEntryBox(weekKey, day, h, 'baby', babyText, 'split');
+          } else {
+            const owner = babyText.trim() ? 'baby' : 'mama';
+            const shownText = owner === 'baby' ? babyText : mamaText;
+            entriesHtml = buildEntryBox(weekKey, day, h, owner, shownText, 'single');
+            // the "add the other person's box here too" option is always available, whether or
+            // not this box has anything written yet
+            entriesHtml += buildEntryPlus(weekKey, day, h, owner === 'baby' ? 'mama' : 'baby');
+          }
+          row.innerHTML = `<div class="hour-meta"><span class="hlabel">${label}</span><span class="hour-controls"><input type="number" class="span-input" min="1" max="${HOURS.length - hi}" value="${span}" title="Merge this many hours into one block" data-week="${weekKey}" data-day="${day}" data-hour="${h}"></span></div><div class="hour-entries">${entriesHtml}</div>`;
+          hourlyRowsEl.appendChild(row);
+          hi = endIdx;
+        }
+        // size each entry box to fit its full text right away (no scrolling needed to read it)
+        hourlyRowsEl.querySelectorAll('textarea.hour-text').forEach(ta=>{
+          ta.style.height = 'auto';
+          ta.style.height = ta.scrollHeight + 'px';
+        });
+
+        // pen/handwriting mode for this day's routine notes
+        const drawingShownEl = card.querySelector('.routine-drawing-shown');
+        if(dayData._drawing){
+          drawingShownEl.innerHTML = `<img src="${dayData._drawing}" alt="Handwritten routine notes for ${day}">`;
+        }
+        const canvasId = `rc-${weekKey}-${day}`;
+        const ctl = makeCanvasController(canvasId);
+        const modeToggleWrap = card.querySelector('.mode-toggle');
+        const canvasWrapEl = card.querySelector('.routine-canvas-wrap');
+        modeToggleWrap.querySelectorAll('.mode-btn').forEach(btn=>{
+          btn.addEventListener('click', ()=>{
+            const isPen = btn.dataset.rmode === 'pen';
+            modeToggleWrap.querySelectorAll('.mode-btn').forEach(b=>b.classList.toggle('active', b===btn));
+            hourlyRowsEl.style.display = isPen ? 'none' : '';
+            canvasWrapEl.classList.toggle('active', isPen);
+            if(isPen) setTimeout(ctl.setup, 0);
+          });
+        });
+        canvasWrapEl.querySelector('.rc-clear').addEventListener('click', ()=> ctl.clear());
+        canvasWrapEl.querySelector('.rc-save').addEventListener('click', ()=>{
+          if(ctl.isBlank()){ alert("Draw something first."); return; }
+          const drawing = ctl.dataUrl();
+          ctl.clear();
+          if(dayData._drawing){
+            withUndo("Drawing replaced", ()=>{ data.routineWeeks[weekKey][day]._drawing = drawing; });
+            return;
+          }
+          dayData._drawing = drawing;
+          save();
+          drawingShownEl.innerHTML = `<img src="${dayData._drawing}" alt="Handwritten routine notes for ${day}">`;
+        });
+
+        // compact Food-for-this-day view: Food -> Breakfast/Lunch/Dinner -> FA/AB/FS fields,
+        // backed by the same data.food the Food tab uses
+        const foodMiniToggle = card.querySelector('.food-mini-toggle');
+        const foodMiniPanel = card.querySelector('.food-mini-panel');
+        const foodMealDetail = card.querySelector('.food-meal-detail');
+        foodMiniToggle.addEventListener('click', ()=>{
+          foodMiniPanel.classList.toggle('active');
+        });
+        card.querySelectorAll('.food-meal-btn').forEach(mbtn=>{
+          mbtn.addEventListener('click', ()=>{
+            const meal = mbtn.dataset.meal;
+            const alreadyOpen = mbtn.classList.contains('active');
+            card.querySelectorAll('.food-meal-btn').forEach(b=>b.classList.remove('active'));
+            if(alreadyOpen){
+              foodMealDetail.innerHTML = "";
+              return;
+            }
+            mbtn.classList.add('active');
+            foodMealDetail.innerHTML = FOOD_PEOPLE.map(p=>`
+              <div class="food-person-row">
+                <label>${p.label}</label>
+                <textarea rows="1" data-fmeal="${meal}" data-fday="${day}" data-fperson="${p.key}" placeholder="${p.placeholder}">${escapeHtml(data.food[meal][day][p.key] || "")}</textarea>
+              </div>
+            `).join('');
+            foodMealDetail.querySelectorAll('textarea[data-fperson]').forEach(inp=>{
+              inp.addEventListener('input', ()=>{
+                data.food[inp.dataset.fmeal][inp.dataset.fday][inp.dataset.fperson] = inp.value;
+                save();
+                renderFood();
+              });
+            });
+          });
+        });
+      });
+    });
+    wrap.querySelectorAll('textarea.hour-text').forEach(ta=>{
+      ta.addEventListener('input', ()=>{
+        // height is up to her now (drag the bottom-right corner to resize) — boxes still open
+        // pre-sized to fit their saved text, but typing no longer overrides a size she's set
+        const cell = data.routineWeeks[ta.dataset.week][ta.dataset.day][ta.dataset.hour];
+        if(ta.dataset.mode === 'split'){
+          // split boxes have a fixed owner (position on screen) — typing in one never moves text
+          // into the other
+          cell[ta.dataset.owner] = ta.value;
+        } else {
+          // single-box mode: which owner the text belongs to is re-derived every time it changes —
+          // an "Abdullah:" prefix marks it his, anything else is hers
+          const owner = ta.value.includes("Abdullah:") ? 'baby' : 'mama';
+          const other = owner === 'mama' ? 'baby' : 'mama';
+          cell[owner] = ta.value;
+          cell[other] = '';
+          ta.dataset.owner = owner;
+          const entryEl = ta.closest('.hour-entry');
+          entryEl.classList.remove('owner-mama', 'owner-baby');
+          entryEl.classList.add(owner === 'baby' ? 'owner-baby' : 'owner-mama');
+          // keep the "add a coinciding entry" button in sync without a full re-render — it stays
+          // present at all times (not just once this box has text) so she can add the other
+          // person's box side by side whenever she wants to
+          const row = ta.closest('.hour-row');
+          let plusBtn = row.querySelector('.entry-plus');
+          if(plusBtn){
+            plusBtn.dataset.plusOwner = other;
+            plusBtn.textContent = other === 'baby' ? "+ Add Abdullah's entry here too" : "+ Add your own entry here too";
+          } else {
+            row.querySelector('.hour-entries').insertAdjacentHTML('beforeend', buildEntryPlus(ta.dataset.week, ta.dataset.day, ta.dataset.hour, other));
+            bindEntryPlus(row.querySelector('.entry-plus'));
+          }
+        }
+        save();
+      });
+    });
+    wrap.querySelectorAll('.entry-plus').forEach(bindEntryPlus);
+    wrap.querySelectorAll('.span-input').forEach(inp=>{
+      inp.addEventListener('change', ()=>{
+        let n = parseInt(inp.value, 10);
+        if(!n || n < 1) n = 1;
+        const week = data.routineWeeks[inp.dataset.week][inp.dataset.day];
+        week._spans = week._spans || {};
+        week._spans[inp.dataset.hour] = n;
+        save();
+        renderRoutine();
+      });
+    });
+    wrap.querySelectorAll('.recur-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const wk = btn.dataset.recurWeek, day = btn.dataset.recurDay, hour = btn.dataset.recurHour, owner = btn.dataset.recurOwner;
+        data.recurring[day] = data.recurring[day] || {};
+        const existing = data.recurring[day][hour];
+        if(existing && (existing[owner] || '').trim()){
+          // also take it back out of this week and the weeks ahead wherever it's still exactly the
+          // repeated wording — past weeks, and any box she's since changed, stay as they are
+          const repeatedText = existing[owner].trim();
+          const thisWeekKey = isoDate(mondayOfWeek(new Date()));
+          Object.keys(data.routineWeeks).forEach(k=>{
+            if(k < thisWeekKey) return;
+            const cell = data.routineWeeks[k][day] && data.routineWeeks[k][day][hour];
+            if(cell && (cell[owner] || '').trim() === repeatedText) cell[owner] = '';
+          });
+          existing[owner] = '';
+          if(!(existing.mama||'').trim() && !(existing.baby||'').trim()) delete data.recurring[day][hour];
+        } else {
+          const cell = data.routineWeeks[wk][day][hour];
+          const text = (cell && cell[owner] || '').trim();
+          if(!text){ alert("Write something in this box first, then mark it as repeating."); return; }
+          const span = (data.routineWeeks[wk][day]._spans && data.routineWeeks[wk][day]._spans[hour]) || 1;
+          const entry = data.recurring[day][hour] || {mama:"", baby:"", span};
+          entry[owner] = text;
+          entry.span = span;
+          data.recurring[day][hour] = entry;
+          applyRecurringToAllWeeks();
+        }
+        save();
+        renderRoutine();
+      });
+    });
+    wrap.querySelectorAll('.cal-btn[data-cal-day]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const weekKey = btn.dataset.calWeek, day = btn.dataset.calDay, hour = btn.dataset.calHour, owner = btn.dataset.calOwner;
+        const cell = data.routineWeeks[weekKey][day][hour];
+        const text = cell && cell[owner];
+        if(!text || !text.trim()){ alert("Write something in this box first."); return; }
+        const weekDates = weekDatesFromMonday(new Date(weekKey + 'T00:00:00'));
+        openGCal(text, weekDates[day], hourTo24(hour), 60);
+      });
+    });
+    fillRoutineCalendarEvents();
+  }
+
+  // Food — collapsible meals with horizontal scroll of day boxes
+  function renderFood(){
+    const wrap = document.getElementById('foodList');
+    // keep open meals open when the tab is redrawn (e.g. after a change arrives from another device)
+    const openMeals = new Set([...wrap.querySelectorAll('.collapse-card.open .collapse-head')].map(h => h.dataset.meal));
+    wrap.innerHTML = "";
+    MEALS.forEach(meal=>{
+      const card = document.createElement('div');
+      card.className = 'collapse-card' + (openMeals.has(meal) ? ' open' : '');
+      card.innerHTML = `
+        <div class="collapse-head" data-meal="${meal}">
+          <h2>${meal}</h2>
+          <span class="chev">&#9662;</span>
+        </div>
+        <div class="collapse-body" id="foodbody-${meal}"></div>
+      `;
+      wrap.appendChild(card);
+      const body = card.querySelector('.collapse-body');
+      body.innerHTML = `<div class="scroll-hint">Scroll sideways &rarr;</div><div class="day-scroll" id="scroll-${meal}"></div>`;
+      const scroller = body.querySelector('.day-scroll');
+      DAYS.forEach(day=>{
+        const box = document.createElement('div');
+        box.className = 'day-box';
+        const whoBlocks = FOOD_PEOPLE.map(p=>`
+          <div class="who-block">
+            <h3>${p.label}</h3>
+            <div class="who-row">
+              <textarea data-meal="${meal}" data-day="${day}" data-who="${p.key}" placeholder="${p.placeholder}">${escapeHtml(data.food[meal][day][p.key] || "")}</textarea>
+              <button class="cal-btn" title="Add to Google Calendar" data-fmeal="${meal}" data-fday="${day}" data-fwho="${p.key}">&#128197;</button>
+            </div>
+          </div>
+        `).join('');
+        box.innerHTML = `<div class="fday-title">${day}</div>${whoBlocks}`;
+        scroller.appendChild(box);
+      });
+      card.querySelector('.collapse-head').addEventListener('click', ()=>{
+        card.classList.toggle('open');
+      });
+    });
+    wrap.querySelectorAll('textarea[data-who]').forEach(ta=>{
+      ta.addEventListener('input', ()=>{
+        data.food[ta.dataset.meal][ta.dataset.day][ta.dataset.who] = ta.value;
+        save();
+      });
+    });
+    wrap.querySelectorAll('.cal-btn[data-fmeal]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const meal = btn.dataset.fmeal, day = btn.dataset.fday, who = btn.dataset.fwho;
+        const text = data.food[meal][day][who];
+        if(!text || !text.trim()){ alert("Write something in this box first."); return; }
+        openGCal(`${meal} (${who}): ${text}`, nextDateForDay(day), MEAL_TIME[meal], 30);
+      });
+    });
+  }
+
+  // Journal
+  function todayISO(){
+    const d = new Date();
+    return `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+  }
+  function labelForDate(iso){
+    return new Date(iso + 'T00:00:00').toLocaleDateString('en-GB', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  }
+  function todayLabel(){ return labelForDate(todayISO()); }
+  function renderJournal(){
+    const list = document.getElementById('journalList');
+    const monthFilter = (document.getElementById('journalMonthFilter').value || '').trim();
+    const searchTerm = (document.getElementById('journalSearchInput').value || '').trim().toLowerCase();
+    let indexed = data.journal.map((entry, i) => ({ entry, i }));
+    if(monthFilter){
+      indexed = indexed.filter(({entry}) => entry.dateISO && entry.dateISO.slice(0,7) === monthFilter);
+    }
+    if(searchTerm){
+      indexed = indexed.filter(({entry}) => {
+        const hay = ((entry.date || '') + ' ' + (entry.text || '')).toLowerCase();
+        return hay.includes(searchTerm);
+      });
+    }
+    indexed.sort((a,b) => (b.entry.dateISO || '').localeCompare(a.entry.dateISO || ''));
+    if(indexed.length === 0){
+      list.innerHTML = `<p class="empty">${data.journal.length === 0 ? 'No entries yet.' : 'No entries match that search.'}</p>`;
+      return;
+    }
+    list.innerHTML = '';
+    indexed.forEach(({entry, i})=>{
+      const div = document.createElement('div');
+      div.className = 'journal-entry';
+      const body = entry.image
+        ? `<img src="${entry.image}" alt="Handwritten journal entry">`
+        : `<div class="jtext">${escapeHtml(entry.text)}</div>`;
+      div.innerHTML = `
+        <div class="jdate">${escapeHtml(entry.date)} <button onclick="deleteJournal(${i})">Remove</button></div>
+        ${body}
+      `;
+      list.appendChild(div);
+    });
+  }
+  function clearJournalFilters(){
+    document.getElementById('journalMonthFilter').value = '';
+    document.getElementById('journalSearchInput').value = '';
+    renderJournal();
+  }
+  function currentJournalDateISO(){
+    const el = document.getElementById('journalDateInput');
+    return (el && el.value) || todayISO();
+  }
+  function addJournal(){
+    const input = document.getElementById('journalInput');
+    const val = input.value.trim();
+    if(!val) return;
+    const iso = currentJournalDateISO();
+    data.journal.unshift({dateISO: iso, date: labelForDate(iso), text: val});
+    input.value = "";
+    save(); renderJournal();
+  }
+  function deleteJournal(i){ withUndo("Journal entry removed", ()=>{ data.journal.splice(i,1); }); }
+
+  // Journal — pen/handwriting mode
+  function setJournalMode(mode){
+    const typeBtn = document.getElementById('typeModeBtn');
+    const penBtn = document.getElementById('penModeBtn');
+    const typeWrap = document.getElementById('journalTypeWrap');
+    const canvasWrap = document.getElementById('journalCanvasWrap');
+    const isPen = mode === 'pen';
+    typeBtn.classList.toggle('active', !isPen);
+    penBtn.classList.toggle('active', isPen);
+    typeWrap.style.display = isPen ? 'none' : 'flex';
+    canvasWrap.classList.toggle('active', isPen);
+    if(isPen) setTimeout(journalCanvasCtl.setup, 0);
+  }
+  // Generic pen/stylus canvas controller — reused for Journal and More
+  function makeCanvasController(canvasId){
+    const state = { ctx: null, drawing: false, lastX: 0, lastY: 0 };
+    function setup(){
+      const canvas = document.getElementById(canvasId);
+      const rect = canvas.getBoundingClientRect();
+      const ratio = window.devicePixelRatio || 1;
+      canvas.width = rect.width * ratio;
+      canvas.height = rect.height * ratio;
+      state.ctx = canvas.getContext('2d');
+      state.ctx.scale(ratio, ratio);
+      state.ctx.lineCap = 'round';
+      state.ctx.lineJoin = 'round';
+      state.ctx.strokeStyle = '#3f2333';
+      if(canvas.dataset.bound) return;
+      canvas.dataset.bound = '1';
+      const pos = (e)=>{
+        const r = canvas.getBoundingClientRect();
+        return [e.clientX - r.left, e.clientY - r.top];
+      };
+      canvas.addEventListener('pointerdown', (e)=>{
+        canvas.setPointerCapture(e.pointerId);
+        state.drawing = true;
+        [state.lastX, state.lastY] = pos(e);
+      });
+      canvas.addEventListener('pointermove', (e)=>{
+        if(!state.drawing) return;
+        const [x,y] = pos(e);
+        const pressure = e.pressure && e.pressure > 0 ? e.pressure : 0.5;
+        state.ctx.lineWidth = Math.max(1, pressure * 4);
+        state.ctx.beginPath();
+        state.ctx.moveTo(state.lastX, state.lastY);
+        state.ctx.lineTo(x, y);
+        state.ctx.stroke();
+        [state.lastX, state.lastY] = [x, y];
+      });
+      ['pointerup','pointerleave','pointercancel'].forEach(ev=>{
+        canvas.addEventListener(ev, ()=>{ state.drawing = false; });
+      });
+    }
+    function clear(){
+      const canvas = document.getElementById(canvasId);
+      if(state.ctx) state.ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+    function isBlank(){
+      const canvas = document.getElementById(canvasId);
+      const blank = document.createElement('canvas');
+      blank.width = canvas.width; blank.height = canvas.height;
+      return canvas.toDataURL() === blank.toDataURL();
+    }
+    function dataUrl(){ return document.getElementById(canvasId).toDataURL('image/png'); }
+    return { setup, clear, isBlank, dataUrl };
+  }
+  const journalCanvasCtl = makeCanvasController('journalCanvas');
+  const moreCanvasCtl = makeCanvasController('moreCanvas');
+
+  function clearCanvas(){ journalCanvasCtl.clear(); }
+  function addJournalDrawing(){
+    if(journalCanvasCtl.isBlank()){ alert("Write something first."); return; }
+    const iso = currentJournalDateISO();
+    data.journal.unshift({dateISO: iso, date: labelForDate(iso), image: journalCanvasCtl.dataUrl()});
+    journalCanvasCtl.clear();
+    save(); renderJournal();
+  }
+
+  // Calendar tab quick add
+  function renderCalLog(){
+    const list = document.getElementById('calList');
+    list.innerHTML = "";
+    data.calendarLog.forEach((item)=>{
+      const div = document.createElement('div');
+      div.className = 'cal-item';
+      div.innerHTML = `<span>${escapeHtml(item.title)} — ${escapeHtml(item.date)}</span>`;
+      list.appendChild(div);
+    });
+  }
+  function quickAddCalendar(){
+    const title = document.getElementById('calTitle').value.trim();
+    const date = document.getElementById('calDate').value;
+    const start = document.getElementById('calStart').value;
+    const end = document.getElementById('calEnd').value;
+    if(!title || !date || !start){ alert("Add at least a title, date, and start time."); return; }
+    const [y,m,d] = date.split('-').map(Number);
+    const dateObj = new Date(y, m-1, d);
+    let durationMin = 60;
+    if(end){
+      const [sh,sm] = start.split(':').map(Number);
+      const [eh,em] = end.split(':').map(Number);
+      durationMin = (eh*60+em) - (sh*60+sm);
+      if(durationMin <= 0) durationMin = 60;
+    }
+    openGCal(title, dateObj, start, durationMin);
+  }
+
+  // More
+  const moreEl = document.getElementById('moreText');
+  function renderMore(){
+    moreEl.value = data.more || "";
+    const shown = document.getElementById('moreDrawingShown');
+    shown.innerHTML = data.moreDrawing ? `<img src="${data.moreDrawing}" alt="Handwritten note">` : '';
+  }
+  moreEl.addEventListener('input', ()=>{ data.more = moreEl.value; save(); });
+
+  function setMoreMode(mode){
+    const typeBtn = document.getElementById('moreTypeModeBtn');
+    const penBtn = document.getElementById('morePenModeBtn');
+    const canvasWrap = document.getElementById('moreCanvasWrap');
+    const isPen = mode === 'pen';
+    typeBtn.classList.toggle('active', !isPen);
+    penBtn.classList.toggle('active', isPen);
+    moreEl.style.display = isPen ? 'none' : 'block';
+    canvasWrap.classList.toggle('active', isPen);
+    if(isPen) setTimeout(moreCanvasCtl.setup, 0);
+  }
+  function clearMoreCanvas(){ moreCanvasCtl.clear(); }
+  function saveMoreDrawing(){
+    if(moreCanvasCtl.isBlank()){ alert("Write something first."); return; }
+    const drawing = moreCanvasCtl.dataUrl();
+    moreCanvasCtl.clear();
+    if(data.moreDrawing){
+      withUndo("Drawing replaced", ()=>{ data.moreDrawing = drawing; });
+      return;
+    }
+    data.moreDrawing = drawing;
+    save(); renderMore();
+  }
+
+  // Study — topics each hold sub-topic notes (e.g. Periodontal Maintenance holds GBT); every
+  // note can be typed, written with a pen (same canvas pattern as Journal/More/Routine), or hold
+  // attached photos (uploaded or pasted). Drill-down navigation, not an accordion: opening a
+  // topic or a sub-topic replaces the view with its own page (with a "back" link) instead of
+  // expanding in place, so she never has to scroll down through everything else to read one note.
+  let studyView = {level: 'topics'}; // {level:'topics'} | {level:'topic', topicId} | {level:'note', topicId, noteId}
+  let studyShowingNewTopicForm = false;
+  let deleteConfirmStudyTopicId = null;
+  let deleteConfirmStudyNoteKey = null; // `${topicId}|${noteId}`
+  let studyNewNoteFormTopicId = null;
+  const studyNoteModes = {}; // noteId -> 'type' | 'pen', UI-only, not persisted
+
+  function renderStudy(){
+    if(studyView.level === 'topic') renderStudyTopicPage(studyView.topicId);
+    else if(studyView.level === 'note') renderStudyNotePage(studyView.topicId, studyView.noteId);
+    else renderStudyTopicsList();
+  }
+
+  function renderStudyTopicsList(){
+    const wrap = document.getElementById('studyTopicsWrap');
+    let html = '';
+    if(data.study.topics.length === 0){
+      html += '<p class="empty">No study topics yet — add one below.</p>';
+    } else {
+      html += '<div class="study-page-list">';
+      data.study.topics.forEach(topic=>{
+        const isConfirming = topic.id === deleteConfirmStudyTopicId;
+        const deleteControls = isConfirming
+          ? `<button class="del confirm-del" data-confirm-remove-topic="${topic.id}">Yes, delete</button><button class="del" data-cancel-remove-topic="${topic.id}">Cancel</button>`
+          : `<button class="del" data-remove-topic="${topic.id}" title="Delete this topic">Delete</button>`;
+        html += `
+          <div class="study-page-row">
+            <button class="study-page-open" data-open-topic="${topic.id}">
+              <span class="study-page-title">${escapeHtml(topic.title)}</span>
+              <span class="study-page-sub">${topic.notes.length} sub-topic${topic.notes.length===1?'':'s'}</span>
+            </button>
+            ${deleteControls}
+          </div>`;
+      });
+      html += '</div>';
+    }
+    html += `<div class="study-add-note-row"><button data-show-topic-form>+ Add study topic</button></div>`;
+    if(studyShowingNewTopicForm){
+      html += `
+        <div class="new-list-form">
+          <h2>New study topic</h2>
+          <div><label>Topic name</label><input type="text" id="newStudyTopicTitleInline" placeholder="e.g. Periodontal Maintenance"></div>
+          <div class="form-btns">
+            <button data-create-topic>Create topic</button>
+            <button class="btn-secondary" data-cancel-topic-form>Cancel</button>
+          </div>
+        </div>`;
+    }
+    wrap.innerHTML = html;
+    wrap.querySelectorAll('[data-open-topic]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ studyView = {level:'topic', topicId: btn.dataset.openTopic}; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-remove-topic]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteConfirmStudyTopicId = btn.dataset.removeTopic; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-cancel-remove-topic]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteConfirmStudyTopicId = null; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-confirm-remove-topic]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const removeId = btn.dataset.confirmRemoveTopic;
+        deleteConfirmStudyTopicId = null;
+        withUndo("Study topic deleted", ()=>{ data.study.topics = data.study.topics.filter(t => t.id !== removeId); });
+      });
+    });
+    const showBtn = wrap.querySelector('[data-show-topic-form]');
+    if(showBtn) showBtn.addEventListener('click', ()=>{
+      studyShowingNewTopicForm = true;
+      renderStudy();
+      setTimeout(()=>{ const i = document.getElementById('newStudyTopicTitleInline'); if(i) i.focus(); }, 0);
+    });
+    const cancelBtn = wrap.querySelector('[data-cancel-topic-form]');
+    if(cancelBtn) cancelBtn.addEventListener('click', ()=>{ studyShowingNewTopicForm = false; renderStudy(); });
+    const createBtn = wrap.querySelector('[data-create-topic]');
+    if(createBtn) createBtn.addEventListener('click', ()=>{
+      const input = document.getElementById('newStudyTopicTitleInline');
+      const title = (input.value || '').trim();
+      if(!title){ alert("Give the topic a name first."); return; }
+      data.study.topics.push({id:newId('topic'), title, notes:[]});
+      studyShowingNewTopicForm = false;
+      save(); renderStudy();
+    });
+  }
+
+  function renderStudyTopicPage(topicId){
+    const wrap = document.getElementById('studyTopicsWrap');
+    const topic = data.study.topics.find(t=>t.id===topicId);
+    if(!topic){ studyView = {level:'topics'}; renderStudy(); return; }
+    let html = `<button class="study-back-btn" data-back-to-topics>&larr; Back to Study</button>
+      <h2 class="study-page-heading">${escapeHtml(topic.title)}</h2>`;
+    if(topic.notes.length === 0){
+      html += '<p class="empty">No sub-topics yet — add one below.</p>';
+    } else {
+      html += '<div class="study-page-list">';
+      topic.notes.forEach(note=>{
+        const noteKey = topicId + '|' + note.id;
+        const isConfirming = noteKey === deleteConfirmStudyNoteKey;
+        const deleteControls = isConfirming
+          ? `<button class="del confirm-del" data-confirm-remove-note="${noteKey}">Yes, delete</button><button class="del" data-cancel-remove-note="${noteKey}">Cancel</button>`
+          : `<button class="del" data-remove-note="${noteKey}" title="Delete this sub-topic">Delete</button>`;
+        html += `
+          <div class="study-page-row">
+            <button class="study-page-open" data-open-note-topic="${topicId}" data-open-note="${note.id}">
+              <span class="study-page-title">${escapeHtml(note.title)}</span>
+            </button>
+            ${deleteControls}
+          </div>`;
+      });
+      html += '</div>';
+    }
+    html += `<div class="study-add-note-row"><button data-show-note-form-topic="${topicId}">+ Add sub-topic</button></div>`;
+    if(studyNewNoteFormTopicId === topicId){
+      html += `
+        <div class="new-list-form">
+          <h2>New sub-topic</h2>
+          <div><label>Sub-topic name</label><input type="text" class="study-new-note-title" data-topic="${topicId}" placeholder="e.g. GBT (Guided Biofilm Therapy)"></div>
+          <div class="form-btns">
+            <button data-create-note-topic="${topicId}">Create sub-topic</button>
+            <button class="btn-secondary" data-cancel-note-topic="${topicId}">Cancel</button>
+          </div>
+        </div>`;
+    }
+    wrap.innerHTML = html;
+    wrap.querySelector('[data-back-to-topics]').addEventListener('click', ()=>{
+      deleteConfirmStudyTopicId = null;
+      studyView = {level:'topics'};
+      renderStudy();
+    });
+    wrap.querySelectorAll('[data-open-note-topic]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ studyView = {level:'note', topicId: btn.dataset.openNoteTopic, noteId: btn.dataset.openNote}; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-remove-note]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteConfirmStudyNoteKey = btn.dataset.removeNote; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-cancel-remove-note]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{ e.stopPropagation(); deleteConfirmStudyNoteKey = null; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-confirm-remove-note]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const [tId, nId] = btn.dataset.confirmRemoveNote.split('|');
+        deleteConfirmStudyNoteKey = null;
+        withUndo("Sub-topic deleted", ()=>{
+          const t = data.study.topics.find(x=>x.id===tId);
+          if(t) t.notes = t.notes.filter(n=>n.id!==nId);
+        });
+      });
+    });
+    const showBtn = wrap.querySelector('[data-show-note-form-topic]');
+    if(showBtn) showBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      studyNewNoteFormTopicId = topicId;
+      renderStudy();
+      setTimeout(()=>{ const i = wrap.querySelector('.study-new-note-title'); if(i) i.focus(); }, 0);
+    });
+    const cancelBtn = wrap.querySelector('[data-cancel-note-topic]');
+    if(cancelBtn) cancelBtn.addEventListener('click', (e)=>{ e.stopPropagation(); studyNewNoteFormTopicId = null; renderStudy(); });
+    const createBtn = wrap.querySelector('[data-create-note-topic]');
+    if(createBtn) createBtn.addEventListener('click', (e)=>{
+      e.stopPropagation();
+      const input = wrap.querySelector(`.study-new-note-title[data-topic="${topicId}"]`);
+      const title = (input.value || '').trim();
+      if(!title){ alert("Give the sub-topic a name first."); return; }
+      const t = data.study.topics.find(x=>x.id===topicId);
+      if(t) t.notes.push(defaultStudyNote(title));
+      studyNewNoteFormTopicId = null;
+      save(); renderStudy();
+    });
+  }
+
+  function buildStudyNoteHtml(topicId, note){
+    const noteKey = topicId + '|' + note.id;
+    const mode = studyNoteModes[note.id] === 'pen' ? 'pen' : 'type';
+    const drawingShown = note.drawing ? `<div class="routine-drawing-shown"><img src="${note.drawing}" alt="Handwritten note for ${escapeAttr(note.title)}"></div>` : '';
+    const imagesHtml = (note.images||[]).map((src, ii)=> `
+      <div class="study-photo-box">
+        <button class="study-photo-remove" data-remove-photo="${topicId}|${note.id}|${ii}" title="Remove photo">&times;</button>
+        <img src="${src}" alt="Photo attached to ${escapeAttr(note.title)}">
+      </div>
+    `).join('');
+    return `
+      <div class="study-note-card" data-note-topic="${topicId}" data-note-id="${note.id}">
+        <div class="study-note-head">
+          <h3>${escapeHtml(note.title)}</h3>
+        </div>
+        <div class="mode-toggle">
+          <button class="study-mode-btn${mode==='type' ? ' active' : ''}" data-mode="type">&#9000; Type</button>
+          <button class="study-mode-btn${mode==='pen' ? ' active' : ''}" data-mode="pen">&#9998; Pen</button>
+        </div>
+        <textarea class="study-note-text" style="${mode==='pen' ? 'display:none;' : ''}" placeholder="Type here, or use your keyboard's mic button to dictate...">${escapeHtml(note.text)}</textarea>
+        <div class="routine-canvas-wrap${mode==='pen' ? ' active' : ''}">
+          ${drawingShown}
+          <canvas class="routine-canvas" id="study-canvas-${note.id}"></canvas>
+          <div class="canvas-tools">
+            <button data-clear-canvas-note>Clear</button>
+            <button data-save-canvas-note>Save drawing</button>
+          </div>
+        </div>
+        <div class="study-photo-tools">
+          <label>+ Add photo<input type="file" accept="image/*" class="study-photo-input"></label>
+          <span class="study-photo-hint">or paste a copied image below</span>
+        </div>
+        <div class="study-paste-zone" tabindex="0">Click here, then paste (Ctrl/Cmd+V) an image</div>
+        <div class="study-photos">${imagesHtml}</div>
+        ${(note.images||[]).length ? '<div class="study-photo-hint">Drag a photo\'s bottom-right corner to resize it, and scroll inside it to adjust which part shows.</div>' : ''}
+      </div>
+    `;
+  }
+
+  function renderStudyNotePage(topicId, noteId){
+    const wrap = document.getElementById('studyTopicsWrap');
+    const topic = data.study.topics.find(t=>t.id===topicId);
+    const note = topic && topic.notes.find(n=>n.id===noteId);
+    if(!topic || !note){ studyView = {level:'topics'}; renderStudy(); return; }
+    const isConfirming = (topicId+'|'+noteId) === deleteConfirmStudyNoteKey;
+    const deleteRow = isConfirming
+      ? `<button class="del confirm-del" data-confirm-remove-note="${topicId}|${noteId}">Yes, delete this sub-topic</button><button class="del" data-cancel-remove-note="${topicId}|${noteId}">Cancel</button>`
+      : `<button class="del" data-remove-note="${topicId}|${noteId}">Delete this sub-topic</button>`;
+    wrap.innerHTML = `
+      <button class="study-back-btn" data-back-to-topic="${topicId}">&larr; Back to ${escapeHtml(topic.title)}</button>
+      ${buildStudyNoteHtml(topicId, note)}
+      <div class="study-note-delete-row">${deleteRow}</div>
+    `;
+    wrap.querySelector('[data-back-to-topic]').addEventListener('click', ()=>{
+      studyView = {level:'topic', topicId};
+      renderStudy();
+    });
+    wrap.querySelectorAll('[data-remove-note]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ deleteConfirmStudyNoteKey = btn.dataset.removeNote; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-cancel-remove-note]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{ deleteConfirmStudyNoteKey = null; renderStudy(); });
+    });
+    wrap.querySelectorAll('[data-confirm-remove-note]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const [tId, nId] = btn.dataset.confirmRemoveNote.split('|');
+        deleteConfirmStudyNoteKey = null;
+        studyView = {level:'topic', topicId: tId};
+        withUndo("Sub-topic deleted", ()=>{
+          const t = data.study.topics.find(x=>x.id===tId);
+          if(t) t.notes = t.notes.filter(n=>n.id!==nId);
+        });
+      });
+    });
+    bindStudyNoteCardEvents(wrap.querySelector('.study-note-card'));
+  }
+
+  function bindStudyNoteCardEvents(card){
+    if(!card) return;
+    const topicId = card.dataset.noteTopic, noteId = card.dataset.noteId;
+    const topic = data.study.topics.find(t=>t.id===topicId);
+    const note = topic && topic.notes.find(n=>n.id===noteId);
+    if(!note) return;
+    const textEl = card.querySelector('.study-note-text');
+    textEl.addEventListener('input', ()=>{ note.text = textEl.value; save(); });
+    const canvasWrapEl = card.querySelector('.routine-canvas-wrap');
+    const canvasEl = card.querySelector('canvas.routine-canvas');
+    const ctl = makeCanvasController(canvasEl.id);
+    if(canvasWrapEl.classList.contains('active')) setTimeout(ctl.setup, 0);
+    card.querySelectorAll('.study-mode-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const isPen = btn.dataset.mode === 'pen';
+        studyNoteModes[noteId] = isPen ? 'pen' : 'type';
+        card.querySelectorAll('.study-mode-btn').forEach(b=> b.classList.toggle('active', b===btn));
+        textEl.style.display = isPen ? 'none' : '';
+        canvasWrapEl.classList.toggle('active', isPen);
+        if(isPen) setTimeout(ctl.setup, 0);
+      });
+    });
+    card.querySelector('[data-clear-canvas-note]').addEventListener('click', ()=> ctl.clear());
+    card.querySelector('[data-save-canvas-note]').addEventListener('click', ()=>{
+      if(ctl.isBlank()){ alert("Draw something first."); return; }
+      const drawing = ctl.dataUrl();
+      if(note.drawing){
+        withUndo("Drawing replaced", ()=>{ note.drawing = drawing; });
+        return;
+      }
+      note.drawing = drawing;
+      save();
+      renderStudy();
+    });
+    card.querySelector('.study-photo-input').addEventListener('change', (e)=>{
+      const file = e.target.files[0];
+      if(!file) return;
+      readImageFileCompressed(file).then(src=>{
+        if(!src) return;
+        note.images = note.images || [];
+        note.images.push(src);
+        save(); renderStudy();
+      });
+      e.target.value = "";
+    });
+    card.querySelector('.study-paste-zone').addEventListener('paste', (e)=>{
+      const items = Array.from((e.clipboardData && e.clipboardData.items) || []);
+      for(const item of items){
+        if(item.type && item.type.startsWith('image/')){
+          const file = item.getAsFile();
+          if(!file) continue;
+          readImageFileCompressed(file).then(src=>{
+            if(!src) return;
+            note.images = note.images || [];
+            note.images.push(src);
+            save(); renderStudy();
+          });
+          e.preventDefault();
+          break;
+        }
+      }
+    });
+    card.querySelectorAll('[data-remove-photo]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const [tId, nId, idx] = btn.dataset.removePhoto.split('|');
+        withUndo("Photo removed", ()=>{
+          const t = data.study.topics.find(x=>x.id===tId);
+          const n = t && t.notes.find(x=>x.id===nId);
+          if(n) n.images.splice(Number(idx), 1);
+        });
+      });
+    });
+  }
+
+  // Custom lists (More section)
+  // Native confirm()/prompt() dialogs are unreliable inside this page's sandbox (they can silently
+  // return false/null with no dialog shown at all), so list deletion uses an inline two-step
+  // confirm instead of window.confirm, and the calendar quick-add below skips window.prompt entirely.
+  let deleteConfirmListId = null;
+  function renderMoreLists(){
+    const wrap = document.getElementById('moreListsWrap');
+    const openIds = new Set();
+    wrap.querySelectorAll('.collapse-card.open').forEach(c => openIds.add(c.dataset.listId));
+    if(data.moreLists.length === 0){
+      wrap.innerHTML = '<p class="empty">No lists yet — add one below.</p>';
+      return;
+    }
+    wrap.innerHTML = "";
+    data.moreLists.forEach(list => {
+      const card = document.createElement('div');
+      card.className = 'collapse-card' + (openIds.has(list.id) ? ' open' : '');
+      card.dataset.listId = list.id;
+      let bodyHtml = '';
+      list.categories.forEach((cat, ci) => {
+        bodyHtml += '<div class="list-category">';
+        if(cat.name) bodyHtml += `<h3>${escapeHtml(cat.name)}</h3>`;
+        bodyHtml += `
+          <div class="add-row">
+            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="Add an item..."></textarea>
+            ${list.priceField ? `<input type="text" class="list-item-price-input" data-list="${list.id}" data-cat="${ci}" placeholder="Price">` : ''}
+            <button class="list-item-add-btn" data-list="${list.id}" data-cat="${ci}">Add</button>
+          </div>
+          <ul class="task-list">`;
+        if(cat.items.length === 0){
+          bodyHtml += '<li class="empty">Nothing added yet.</li>';
+        } else {
+          cat.items.forEach((item, ii) => {
+            bodyHtml += `
+              <li${item.done ? ' class="done"' : ''}>
+                <input type="checkbox" ${item.done ? 'checked' : ''} data-check-list="${list.id}" data-check-cat="${ci}" data-check-item="${ii}">
+                <span class="txt">${escapeHtml(item.text)}${item.price ? ` <span class="item-price">— ${escapeHtml(item.price)}</span>` : ''}</span>
+                ${list.calendarButtons ? `<button class="cal-btn" title="Add to Google Calendar" data-listcal-list="${list.id}" data-listcal-cat="${ci}" data-listcal-item="${ii}">&#128197;</button>` : ''}
+                <button class="del" data-del-list="${list.id}" data-del-cat="${ci}" data-del-item="${ii}">Remove</button>
+              </li>`;
+          });
+        }
+        bodyHtml += '</ul></div>';
+      });
+      const isConfirming = list.id === deleteConfirmListId;
+      const deleteControls = isConfirming
+        ? `<button class="del confirm-del" data-confirm-remove-list="${list.id}">Yes, delete</button><button class="del" data-cancel-remove-list="${list.id}">Cancel</button>`
+        : `<button class="del" data-remove-list="${list.id}" title="Delete this list">Delete list</button>`;
+      card.innerHTML = `
+        <div class="collapse-head" data-list-toggle="${list.id}">
+          <h2>${escapeHtml(list.title)}</h2>
+          <div style="display:flex;align-items:center;gap:14px;">
+            ${deleteControls}
+            <span class="chev">&#9662;</span>
+          </div>
+        </div>
+        <div class="collapse-body">${bodyHtml}</div>
+      `;
+      wrap.appendChild(card);
+    });
+    wrap.querySelectorAll('[data-list-toggle]').forEach(head=>{
+      head.addEventListener('click', (e)=>{
+        if(e.target.closest('button')) return;
+        head.closest('.collapse-card').classList.toggle('open');
+      });
+    });
+    wrap.querySelectorAll('[data-remove-list]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        deleteConfirmListId = btn.dataset.removeList;
+        renderMoreLists();
+      });
+    });
+    wrap.querySelectorAll('[data-cancel-remove-list]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        deleteConfirmListId = null;
+        renderMoreLists();
+      });
+    });
+    wrap.querySelectorAll('[data-confirm-remove-list]').forEach(btn=>{
+      btn.addEventListener('click', (e)=>{
+        e.stopPropagation();
+        const removeId = btn.dataset.confirmRemoveList;
+        deleteConfirmListId = null;
+        withUndo("List deleted", ()=>{ data.moreLists = data.moreLists.filter(l=>l.id!==removeId); });
+      });
+    });
+    wrap.querySelectorAll('.list-item-add-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> addListItem(btn.dataset.list, btn.dataset.cat));
+    });
+    wrap.querySelectorAll('.list-item-input, .list-item-price-input').forEach(inp=>{
+      inp.addEventListener('keydown', (e)=>{
+        // Shift+Enter still adds a line break in the item box (now resizable for longer notes);
+        // plain Enter submits, same as before
+        if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); addListItem(inp.dataset.list, inp.dataset.cat); }
+      });
+    });
+    wrap.querySelectorAll('[data-check-list]').forEach(cb=>{
+      cb.addEventListener('change', ()=>{
+        const list = data.moreLists.find(l=>l.id===cb.dataset.checkList);
+        if(!list) return;
+        const item = list.categories[cb.dataset.checkCat].items[cb.dataset.checkItem];
+        if(!item) return;
+        item.done = cb.checked;
+        save(); renderMoreLists();
+      });
+    });
+    wrap.querySelectorAll('[data-del-list]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const list = data.moreLists.find(l=>l.id===btn.dataset.delList);
+        if(!list) return;
+        withUndo("Item removed", ()=>{ list.categories[btn.dataset.delCat].items.splice(btn.dataset.delItem, 1); });
+      });
+    });
+    wrap.querySelectorAll('[data-listcal-list]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const list = data.moreLists.find(l=>l.id===btn.dataset.listcalList);
+        if(!list) return;
+        const item = list.categories[btn.dataset.listcalCat].items[btn.dataset.listcalItem];
+        if(!item || !item.text.trim()){ alert("Write something in this item first."); return; }
+        // Defaults to today, same as every other calendar button on this page — open the
+        // event in Google Calendar and change the date there if it's for a different day.
+        openGCal(item.text, new Date(), "09:00", 30);
+      });
+    });
+  }
+  function addListItem(listId, catIdx){
+    const list = data.moreLists.find(l=>l.id===listId);
+    if(!list) return;
+    const input = document.querySelector(`.list-item-input[data-list="${listId}"][data-cat="${catIdx}"]`);
+    const val = (input.value || '').trim();
+    if(!val) return;
+    let price = '';
+    if(list.priceField){
+      const priceInput = document.querySelector(`.list-item-price-input[data-list="${listId}"][data-cat="${catIdx}"]`);
+      price = priceInput ? (priceInput.value || '').trim() : '';
+      if(priceInput) priceInput.value = "";
+    }
+    list.categories[catIdx].items.unshift({text: val, done:false, price});
+    input.value = "";
+    save(); renderMoreLists();
+  }
+  function showNewListForm(){
+    document.getElementById('newListFormCard').style.display = 'block';
+    document.getElementById('newListTitle').focus();
+  }
+  function hideNewListForm(){
+    document.getElementById('newListFormCard').style.display = 'none';
+    document.getElementById('newListTitle').value = '';
+    document.getElementById('newListCategories').value = '';
+    document.getElementById('newListCalBtn').checked = false;
+    document.getElementById('newListPriceBtn').checked = false;
+  }
+  function createNewList(){
+    const title = document.getElementById('newListTitle').value.trim();
+    if(!title){ alert("Give the list a name first."); return; }
+    const catsRaw = document.getElementById('newListCategories').value.trim();
+    const calBtn = document.getElementById('newListCalBtn').checked;
+    const priceBtn = document.getElementById('newListPriceBtn').checked;
+    const categories = catsRaw
+      ? catsRaw.split(',').map(s=>s.trim()).filter(Boolean).map(name=>({name, items:[]}))
+      : [{name:'', items:[]}];
+    data.moreLists.push({id:newId('list'), title, calendarButtons:calBtn, priceField:priceBtn, categories});
+    save();
+    hideNewListForm();
+    renderMoreLists();
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || "";
+    return div.innerHTML;
+  }
+  function escapeAttr(str){ return escapeHtml(str).replace(/"/g,'&quot;'); }
+
+  // Backup / restore
+  let downloadsApi = null;
+  (async ()=>{
+    try{
+      if(window.claude && typeof window.claude.use === 'function'){
+        downloadsApi = await window.claude.use('downloads');
+      }
+    }catch(e){ downloadsApi = null; }
+  })();
+  // Backups work wherever the page is opened: through claude.ai's own download when it's there,
+  // otherwise the phone's share sheet (iPhone/Android: "Save to Files", email it, etc.), otherwise
+  // an ordinary browser download.
+  function backupSaved(){
+    try{ localStorage.setItem(LAST_BACKUP_KEY, String(Date.now())); }catch(e){}
+    renderLastBackup();
+    const status = document.getElementById('saveStatus');
+    status.textContent = "Backup saved";
+    setTimeout(()=>{ status.textContent = ""; }, 2000);
+  }
+  function backupFailed(){
+    const status = document.getElementById('saveStatus');
+    status.textContent = "Couldn't save the backup — try again.";
+    setTimeout(()=>{ status.textContent = ""; }, 2500);
+  }
+  document.getElementById('exportBtn').addEventListener('click', async ()=>{
+    const json = JSON.stringify(data, null, 2);
+    const blob = new Blob([json], {type:'application/json'});
+    const stamp = new Date().toISOString().slice(0,10);
+    const filename = `petal-planner-backup-${stamp}.json`;
+    if(!downloadsApi && window.claude && typeof window.claude.use === 'function'){
+      try{ downloadsApi = await window.claude.use('downloads'); }catch(e){}
+    }
+    if(downloadsApi){
+      try{
+        await downloadsApi.save({ filename, data: blob });
+        backupSaved();
+        return;
+      }catch(err){
+        if(err && err.code === 'declined') return;
+      }
+    }
+    try{
+      const file = new File([json], filename, {type:'application/json'});
+      if(navigator.canShare && navigator.canShare({files:[file]}) && /Android|iPhone|iPad|iPod/i.test(navigator.userAgent)){
+        await navigator.share({files:[file], title:"Petal Planner backup"});
+        backupSaved();
+        return;
+      }
+    }catch(err){
+      if(err && err.name === 'AbortError') return;
+    }
+    try{
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=> URL.revokeObjectURL(url), 5000);
+      backupSaved();
+    }catch(err){ backupFailed(); }
+  });
+  document.getElementById('importFile').addEventListener('change', (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      let parsed;
+      try{ parsed = JSON.parse(reader.result); }catch(err){ parsed = null; }
+      const looksLikeBackup = parsed && typeof parsed === 'object' &&
+        ['urgent','routineWeeks','journal','moreLists','study','food'].some(k => k in parsed);
+      if(!looksLikeBackup){
+        alert("Couldn't read that file — make sure it's a backup downloaded from this page.");
+        return;
+      }
+      let restored;
+      try{ restored = normalizeSaved(parsed); }catch(err){
+        alert("Couldn't read that file — make sure it's a backup downloaded from this page.");
+        return;
+      }
+      withUndo("Backup restored", ()=>{ data = restored; });
+    };
+    reader.readAsText(file);
+    e.target.value = "";
+  });
+
+  function renderAll(){
+    renderUrgent(); renderUrgentGrocery(); renderThingsToDo(); renderVinted(); renderRoutine(); renderFood(); renderJournal(); renderStudy(); renderCalLog(); renderMore(); renderMoreLists();
+  }
+
+  // Live Google Calendar view — month grid + click-a-day detail, like the Google Calendar app.
+  // The events come from one of two places: inside claude.ai, the Google Calendar connector;
+  // on the Petal Planner website, the site's own connection to Google (functions/api/calendar).
+  // On the website, adding an event puts it straight into Google Calendar too.
+  let mcpApi = null;
+  let calSource = null; // 'mcp' | 'site' | null (no live calendar here)
+  let calYear, calMonth, selectedDayKey, monthEvents = {};
+  let routineCalEvents = {}; // dateKey -> events, for the weeks shown in Weekly Routine
+  function pad2(n){ return String(n).padStart(2,'0'); }
+  function dateKey(y,m,d){ return `${y}-${pad2(m+1)}-${pad2(d)}`; }
+  function renderGcalStatus(html){
+    document.getElementById('gcalStatus').innerHTML = html;
+  }
+  function fmtEventTimeOnly(ev){
+    if(ev.start && ev.start.date && !ev.start.dateTime) return 'All day';
+    if(ev.start && ev.start.dateTime) return new Date(ev.start.dateTime).toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+    return '';
+  }
+  // Every day an event covers: an all-day event from the 3rd to the 5th shows on all three days.
+  function groupEventsByDay(events){
+    const byDay = {};
+    events.forEach(ev=>{
+      if(ev.start && ev.start.date && !ev.start.dateTime){
+        const first = new Date(ev.start.date + 'T00:00:00');
+        const last = ev.end && ev.end.date ? new Date(ev.end.date + 'T00:00:00') : new Date(first.getFullYear(), first.getMonth(), first.getDate()+1);
+        for(let d = new Date(first); d < last && (d - first) < 62*86400000; d.setDate(d.getDate()+1)){
+          (byDay[isoDate(d)] = byDay[isoDate(d)] || []).push(ev);
+        }
+      } else if(ev.start && ev.start.dateTime){
+        const key = isoDate(new Date(ev.start.dateTime));
+        (byDay[key] = byDay[key] || []).push(ev);
+      }
+    });
+    return byDay;
+  }
+  async function calListEvents(start, end){
+    if(calSource === 'mcp'){
+      const res = await mcpApi.callTool('Google Calendar', 'list_events', {
+        startTime: start.toISOString(), endTime: end.toISOString(), orderBy: 'startTime', pageSize: 250
+      });
+      return (res.payload && res.payload.events) || [];
+    }
+    if(calSource === 'site'){
+      const q = new URLSearchParams({timeMin: start.toISOString(), timeMax: end.toISOString()});
+      const res = await fetch('/api/calendar/events?' + q, {cache:'no-store', credentials:'same-origin'});
+      const body = await res.json().catch(()=>({}));
+      if(!res.ok){
+        const err = new Error(body.error || 'Calendar request failed');
+        err.code = body.needsReconnect ? 'site_reconnect' : 'site_error';
+        throw err;
+      }
+      return body.events || [];
+    }
+    return [];
+  }
+  function renderCalendarGrid(){
+    const grid = document.getElementById('gcalGrid');
+    const label = document.getElementById('gcalMonthLabel');
+    const first = new Date(calYear, calMonth, 1);
+    const startWeekday = (first.getDay() + 6) % 7; // Monday-first
+    const daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    label.textContent = first.toLocaleDateString('en-GB', {month:'long', year:'numeric'});
+    const dow = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+    let html = '<div class="gcal-dow-row">' + dow.map(d => `<span>${d}</span>`).join('') + '</div><div class="gcal-grid">';
+    for(let i = 0; i < startWeekday; i++) html += '<span class="gcal-cell empty"></span>';
+    const now = new Date();
+    const todayKey = dateKey(now.getFullYear(), now.getMonth(), now.getDate());
+    for(let d = 1; d <= daysInMonth; d++){
+      const key = dateKey(calYear, calMonth, d);
+      const has = monthEvents[key] && monthEvents[key].length > 0;
+      const cls = ['gcal-cell'];
+      if(has) cls.push('has-events');
+      if(key === todayKey) cls.push('today');
+      if(key === selectedDayKey) cls.push('selected');
+      html += `<button type="button" class="${cls.join(' ')}" data-key="${key}">${d}${has ? '<span class="dot"></span>' : ''}</button>`;
+    }
+    html += '</div>';
+    grid.innerHTML = html;
+    grid.querySelectorAll('.gcal-cell[data-key]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        selectedDayKey = btn.dataset.key;
+        // picking a day also sets it as the date in "Quick add", ready to plan something on it
+        document.getElementById('calDate').value = selectedDayKey;
+        renderCalendarGrid();
+        renderDayDetail();
+      });
+    });
+  }
+  function renderDayDetail(){
+    const wrap = document.getElementById('gcalDayDetail');
+    if(!selectedDayKey){ wrap.innerHTML = ''; return; }
+    const evs = monthEvents[selectedDayKey] || [];
+    const label = new Date(selectedDayKey + 'T00:00:00').toLocaleDateString('en-GB', {weekday:'long', day:'numeric', month:'long'});
+    if(evs.length === 0){
+      wrap.innerHTML = `<h3>${label}</h3><p class="empty">Nothing on the calendar this day.</p>`;
+      return;
+    }
+    wrap.innerHTML = `<h3>${label}</h3>` + evs.map(ev => `
+      <div class="gcal-item">
+        <span class="gcal-when">${escapeHtml(fmtEventTimeOnly(ev))}</span>
+        <span class="gcal-title">${escapeHtml(ev.summary || '(untitled event)')}</span>
+      </div>
+    `).join('');
+  }
+  function calendarErrorMessage(err){
+    const code = err && err.code;
+    if(code === 'site_reconnect'){
+      return 'Google Calendar needs connecting again.<br><a class="gcal-connect" href="/api/calendar/connect">Connect Google Calendar</a>';
+    }
+    const fixes = {
+      needs_reauth: 'Your Google Calendar connection needs refreshing — reconnect it in claude.ai Settings → Connectors.',
+      server_not_connected: 'Google Calendar isn\'t connected — add it in claude.ai Settings → Connectors.',
+      selection_required: 'You have more than one Google Calendar connector — pick one when prompted, then reopen this page.',
+      not_granted: 'This page hasn\'t been given access to your connectors yet.',
+      blocked_by_policy: 'Your organization\'s settings block this connector here.',
+    };
+    return fixes[code] || 'Couldn\'t load your calendar right now — you can still use "Quick add" below.';
+  }
+  async function fetchMonthEvents(){
+    if(!calSource){ renderCalendarGrid(); return; }
+    const start = new Date(calYear, calMonth, 1);
+    const end = new Date(calYear, calMonth + 1, 1);
+    try{
+      monthEvents = groupEventsByDay(await calListEvents(start, end));
+      renderGcalStatus(calSource === 'site' ? calendarAccountLine() : '');
+      renderCalendarGrid();
+      renderDayDetail();
+    }catch(err){
+      renderGcalStatus('<span class="gcal-fix">' + calendarErrorMessage(err) + '</span>');
+      renderCalendarGrid();
+    }
+  }
+  // Google Calendar events for the weeks shown in Weekly Routine, so each day shows what's
+  // already booked while planning it
+  async function loadRoutineCalendarEvents(){
+    if(!calSource) return;
+    const keys = visibleRoutineWeekKeys();
+    if(!keys.length) return;
+    const start = new Date(keys[0] + 'T00:00:00');
+    const lastMonday = new Date(keys[keys.length-1] + 'T00:00:00');
+    const end = new Date(lastMonday.getFullYear(), lastMonday.getMonth(), lastMonday.getDate()+7);
+    try{
+      routineCalEvents = groupEventsByDay(await calListEvents(start, end));
+      fillRoutineCalendarEvents();
+    }catch(e){}
+  }
+  function fillRoutineCalendarEvents(){
+    document.querySelectorAll('.gcal-day-events[data-gcal-date]').forEach(el=>{
+      const evs = routineCalEvents[el.dataset.gcalDate] || [];
+      el.innerHTML = evs.length ? '<div class="gde-title">On your Google Calendar</div>' + evs.map(ev =>
+        `<div class="gde-item"><span class="gde-time">${escapeHtml(fmtEventTimeOnly(ev))}</span><span>${escapeHtml(ev.summary || '(untitled event)')}</span></div>`
+      ).join('') : '';
+    });
+    document.querySelectorAll('.gcal-count[data-gcal-count]').forEach(el=>{
+      const n = (routineCalEvents[el.dataset.gcalCount] || []).length;
+      el.textContent = n ? `📅 ${n}` : '';
+      el.hidden = !n;
+    });
+  }
+  let calAccountEmail = '';
+  function calendarAccountLine(){
+    return `<span class="gcal-account">Connected${calAccountEmail ? ' to ' + escapeHtml(calAccountEmail) : ''} · events you add here go straight into Google Calendar <button type="button" onclick="disconnectGoogleCalendar()">Disconnect</button></span>`;
+  }
+  async function disconnectGoogleCalendar(){
+    try{ await fetch('/api/calendar/disconnect', {method:'POST', credentials:'same-origin'}); }catch(e){}
+    calSource = null; monthEvents = {}; routineCalEvents = {};
+    fillRoutineCalendarEvents();
+    renderGcalStatus('<span class="gcal-fix">Google Calendar disconnected.</span><br><a class="gcal-connect" href="/api/calendar/connect">Connect Google Calendar</a>');
+    renderCalendarGrid(); renderDayDetail();
+  }
+  function gcalPrevMonth(){ calMonth--; if(calMonth < 0){ calMonth = 11; calYear--; } fetchMonthEvents(); }
+  function gcalNextMonth(){ calMonth++; if(calMonth > 11){ calMonth = 0; calYear++; } fetchMonthEvents(); }
+  async function initGoogleCalendar(){
+    const now = new Date();
+    calYear = now.getFullYear(); calMonth = now.getMonth();
+    selectedDayKey = dateKey(calYear, calMonth, now.getDate());
+    try{
+      if(window.claude && typeof window.claude.use === 'function'){
+        mcpApi = await window.claude.use('mcp');
+      }
+    }catch(e){ mcpApi = null; }
+    if(mcpApi){
+      calSource = 'mcp';
+    } else {
+      let status = null;
+      try{
+        const res = await fetch('/api/calendar/status', {cache:'no-store', credentials:'same-origin'});
+        if(res.headers.get('X-Petal-Planner') === '1' && res.ok) status = await res.json();
+      }catch(e){}
+      if(status && status.connected){
+        calSource = 'site';
+        calAccountEmail = status.email || '';
+      } else if(status && status.configured){
+        renderGcalStatus('<span class="gcal-fix">See your Google Calendar here, and send things you plan straight into it.</span><br><a class="gcal-connect" href="/api/calendar/connect">Connect Google Calendar</a>');
+      } else if(status){
+        renderGcalStatus('<span class="gcal-fix">Google Calendar hasn\'t been set up for this website yet (see the setup steps in the README). "Quick add" below still works.</span>');
+      } else {
+        renderGcalStatus('<span class="gcal-fix">Live calendar view isn\'t available in this view — use "Quick add" below, or open the page from claude.ai directly.</span>');
+      }
+    }
+    await fetchMonthEvents();
+    loadRoutineCalendarEvents();
+  }
+  // add an event straight into Google Calendar through the website's connection
+  async function addEventViaSite(title, dateObj, startHHMM, durationMin){
+    const [sh, sm] = startHHMM.split(':').map(Number);
+    const startDate = new Date(dateObj.getFullYear(), dateObj.getMonth(), dateObj.getDate(), sh, sm);
+    const endDate = new Date(startDate.getTime() + (durationMin || 30) * 60000);
+    const local = d => `${isoDate(d)}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:00`;
+    const templateUrl = googleTemplateUrl(title, dateObj, startHHMM, durationMin);
+    try{
+      const res = await fetch('/api/calendar/events', {
+        method:'POST', credentials:'same-origin', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({summary: title, start: local(startDate), end: local(endDate),
+          timeZone: (Intl.DateTimeFormat().resolvedOptions().timeZone || 'Europe/London')})
+      });
+      if(!res.ok) throw new Error('HTTP ' + res.status);
+      data.calendarLog.unshift({title, date: dateObj.toDateString()});
+      save(); renderCalLog();
+      showToast(`Added to Google Calendar: ${startDate.toLocaleDateString('en-GB', {weekday:'short', day:'numeric', month:'short'})}, ${local(startDate).slice(11,16)}`);
+      fetchMonthEvents();
+      loadRoutineCalendarEvents();
+    }catch(e){
+      showToast("Couldn't add it to Google Calendar.", "Open Google Calendar", ()=> window.open(templateUrl, '_blank'));
+    }
+  }
+
+  (function initFlowers(){
+    const layer = document.getElementById('flowerLayer');
+    const blooms = ['🌸','🌷','🌺','🌼'];
+    for(let i=0;i<10;i++){
+      const s = document.createElement('span');
+      s.textContent = blooms[i % blooms.length];
+      s.style.left = Math.random()*100 + 'vw';
+      s.style.fontSize = (1 + Math.random()*1.3) + 'rem';
+      s.style.animationDuration = (20 + Math.random()*14) + 's';
+      s.style.animationDelay = (Math.random()*-20) + 's';
+      layer.appendChild(s);
+    }
+  })();
+
+  (function initJournalControls(){
+    const dateInput = document.getElementById('journalDateInput');
+    if(dateInput && !dateInput.value) dateInput.value = todayISO();
+    const monthFilter = document.getElementById('journalMonthFilter');
+    const searchInput = document.getElementById('journalSearchInput');
+    if(monthFilter) monthFilter.addEventListener('change', renderJournal);
+    if(searchInput) searchInput.addEventListener('input', renderJournal);
+  })();
+
+  renderAll();
+  renderLastBackup();
+  shrinkStoredPhotos();
+  initGoogleCalendar();
+  syncStart();
+  openTabFromAddress();
+  // ask the browser to keep this page's storage rather than clearing it to free up space
+  try{ if(navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(()=>{}); }catch(e){}
+</script>
+
+
+
+</body></html>

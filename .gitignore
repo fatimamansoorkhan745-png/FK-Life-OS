@@ -1,0 +1,4 @@
+# local testing leftovers from wrangler
+.wrangler/
+node_modules/
+.dev.vars
