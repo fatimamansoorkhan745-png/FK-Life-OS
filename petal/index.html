@@ -948,6 +948,7 @@
 
   function defaultMoreLists(){
     return [
+      scheduleListV6(),
       {id:newId('list'), title:"Foods Abdullah Likes", calendarButtons:false, categories:[
         {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
       ]},
@@ -979,7 +980,7 @@
   }
   // v2 = added the "Neighbors" list, and made sure every "Things To Buy" list has its price field —
   // both applied once to lists that already existed before those features did.
-  const MORE_LISTS_SEED_VERSION = 5;
+  const MORE_LISTS_SEED_VERSION = 6;
   const PRICE_FIELD_LIST_TITLES = ["Things To Buy — Home", "Things To Buy — Abdullah", "Things To Buy — Fatima", "Things To Buy — Husband"];
   function seedMoreListsV2(merged){
     const hasNeighbors = merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === "neighbors");
@@ -1061,6 +1062,33 @@
           }
         });
       }
+    });
+  }
+
+  // v6 = a "Things To Schedule" list at the top of the lists, with a calendar button on each item,
+  // one section per thing to plan time for. Adding a section or item never duplicates one that's
+  // already there (by name/wording, case-insensitive).
+  const SCHEDULE_LIST_TITLE = "Things To Schedule";
+  const SCHEDULE_SECTIONS_V6 = [
+    {name:"Tax filing", items:["Learn about tax filing"]},
+    {name:"Skin care", items:["Decide what to buy for skin care"]}
+  ];
+  function scheduleListV6(){
+    return {id:newId('list'), title:SCHEDULE_LIST_TITLE, calendarButtons:true, categories:
+      SCHEDULE_SECTIONS_V6.map(sec => ({name: sec.name, items: sec.items.map(text => ({text, done:false, price:''}))}))};
+  }
+  function seedMoreListsV6(merged){
+    let list = merged.moreLists.find(l => (l.title||"").trim().toLowerCase() === SCHEDULE_LIST_TITLE.toLowerCase());
+    if(!list){
+      merged.moreLists.unshift(scheduleListV6());
+      return;
+    }
+    list.calendarButtons = true;
+    SCHEDULE_SECTIONS_V6.forEach(sec=>{
+      let cat = list.categories.find(c => (c.name||"").trim().toLowerCase() === sec.name.toLowerCase());
+      if(!cat){ cat = {name: sec.name, items: []}; list.categories.push(cat); }
+      const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
+      sec.items.forEach(text=>{ if(!existing.has(text.toLowerCase())) cat.items.push({text, done:false, price:''}); });
     });
   }
 
@@ -1425,6 +1453,9 @@
     }
     if(priorMoreListsSeed < 5){
       seedMoreListsV5(merged);
+    }
+    if(priorMoreListsSeed < 6){
+      seedMoreListsV6(merged);
     }
     merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
     if(saved.study && Array.isArray(saved.study.topics)){
