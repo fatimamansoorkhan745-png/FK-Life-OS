@@ -21,7 +21,7 @@
   /* animated scenery background */
   #sceneLayer{ position:fixed; inset:0; overflow:hidden; pointer-events:none; z-index:0; }
   .cloud{
-    position:absolute; background:#fff; border-radius:50%; opacity:.55; filter:blur(1px);
+    position:absolute; background:#fff; border-radius:50%; opacity:.5; will-change:transform;
     box-shadow:40px 6px 0 -6px #fff, 80px 0 0 -10px #fff, -40px 8px 0 -8px #fff;
     animation:driftX linear infinite;
   }
@@ -38,6 +38,11 @@
     mask-image:linear-gradient(to top, black, transparent);
   }
   @keyframes flow{ 0%{ background-position:0 0; } 100%{ background-position:200% 0; } }
+  #flowerLayer span{ will-change:transform; }
+  @media (prefers-reduced-motion: reduce){
+    .cloud, .river, #flowerLayer span{ animation:none !important; }
+    #flowerLayer{ display:none; }
+  }
   #flowerLayer span{
     position:absolute; top:-60px; font-size:1.6rem; opacity:.3;
     animation:floatDown linear infinite;
@@ -138,7 +143,9 @@
     font-size:.82rem; font-weight:700; cursor:pointer; flex-shrink:0;
   }
 
-  main{ flex:1; padding:40px 48px 40px 96px; max-width:1000px; transition:padding .28s ease; position:relative; z-index:1; }
+  /* min-width:0 lets the page shrink to the phone's width; without it one wide row of boxes
+     stretched the whole page sideways, so it could be dragged left and right */
+  main{ flex:1; min-width:0; padding:40px 48px 40px 96px; max-width:1000px; transition:padding .28s ease; position:relative; z-index:1; }
   main.expanded{ padding-left:48px; }
   /* on a wide screen the open menu sits beside the page instead of covering its left side */
   @media (min-width:1000px){
@@ -167,6 +174,11 @@
   textarea, input[type=text]{
     width:100%; max-width:100%; border:1px solid var(--line); border-radius:14px; padding:10px 14px;
     font-family:inherit; font-size:.9rem; color:var(--ink); resize:both; background:#fffdfe;
+  }
+  /* iPhones zoom the whole page in when a box with text smaller than 16px is tapped, and leave it
+     zoomed — which left the page stuck mid-way when adding items. 16px on touch screens stops that. */
+  @media (pointer:coarse){
+    textarea, input, select{ font-size:16px !important; }
   }
   textarea:focus, input:focus{ outline:none; box-shadow:0 0 0 3px var(--accent-soft); border-color:var(--accent-dark); }
   a{ color:var(--accent-dark); }
@@ -286,6 +298,7 @@
 
   /* urgent list */
   .add-row{ display:flex; gap:8px; margin-bottom:14px; align-items:flex-end; }
+  .add-row > textarea, .add-row > input{ min-width:0; }
   .add-row input[type=text]{ flex:1; border-radius:20px; }
   .add-row textarea.list-item-input{ flex:1; min-height:44px; max-height:none; border-radius:16px; resize:both; }
   .add-row button, .journal-add button, .cal-form button{
@@ -405,6 +418,24 @@
   /* custom lists (More section) */
   .list-category{ margin-bottom:18px; }
   .list-category:last-child{ margin-bottom:0; }
+  .section-head{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin:0 0 8px; }
+  .section-head h3{ margin:0 !important; }
+  .section-remove{
+    background:none; border:none; color:var(--muted); font-family:inherit; font-size:.72rem; cursor:pointer;
+    padding:4px 6px; text-decoration:underline;
+  }
+  .list-category.person{ border:1px solid var(--line); border-radius:14px; padding:12px 14px; background:#fffafc; }
+  .list-category.person h3{ text-transform:none; letter-spacing:0; font-size:1rem; color:var(--accent-dark); font-weight:700; }
+  /* on a phone, a box that has a price next to it gets the full width, with Price and Add on the
+     line below, instead of being squeezed to a sliver */
+  @media (max-width:700px){
+    .add-row.with-price, .add-section-row{ flex-wrap:wrap; }
+    .add-row.with-price textarea.list-item-input, .add-section-row input{ flex:1 1 100%; }
+    .add-row.with-price input.list-item-price-input{ flex:1 1 auto; width:auto; }
+  }
+  .add-section-row{ margin-top:6px; padding-top:12px; border-top:1px dashed var(--line); }
+  .add-section-row input{ flex:1; }
+  .add-section-row button{ background:#fff !important; color:var(--accent-dark) !important; border:1px dashed var(--accent) !important; white-space:nowrap; }
   .list-category h3{ font-family:inherit; font-style:normal; font-size:.85rem; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin:0 0 8px; }
   .new-list-form{ margin-top:14px; padding:16px 18px; border:1px dashed var(--accent); border-radius:14px; background:var(--accent-soft); }
   .new-list-form h2{ font-size:1rem; margin:0 0 10px; }
@@ -733,6 +764,7 @@
   // Sync between devices, on the Petal Planner website only (see syncStart). Declared up here
   // because save() runs during start-up, before the rest of the sync code is reached.
   const SYNC_CHECK_MS = 15000;
+  const SAVE_DELAY_MS = 350; // see save()
   const sync = {
     enabled: false, version: null, base: undefined, pushTimer: 0, retryTimer: 0,
     pushing: false, pushAgain: false, lastLocalEdit: 0
@@ -949,6 +981,7 @@
   function defaultMoreLists(){
     return [
       scheduleListV6(),
+      giftsListV7(),
       {id:newId('list'), title:"Foods Abdullah Likes", calendarButtons:false, categories:[
         {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
       ]},
@@ -980,7 +1013,7 @@
   }
   // v2 = added the "Neighbors" list, and made sure every "Things To Buy" list has its price field —
   // both applied once to lists that already existed before those features did.
-  const MORE_LISTS_SEED_VERSION = 6;
+  const MORE_LISTS_SEED_VERSION = 7;
   const PRICE_FIELD_LIST_TITLES = ["Things To Buy — Home", "Things To Buy — Abdullah", "Things To Buy — Fatima", "Things To Buy — Husband"];
   function seedMoreListsV2(merged){
     const hasNeighbors = merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === "neighbors");
@@ -1090,6 +1123,18 @@
       const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
       sec.items.forEach(text=>{ if(!existing.has(text.toLowerCase())) cat.items.push({text, done:false, price:''}); });
     });
+  }
+
+  // v7 = a "Gifts To Buy" list, placed just after "Things To Schedule": each section is a person
+  // ("+ Add person"), holding the gift ideas for them, each with a price box.
+  const GIFTS_LIST_TITLE = "Gifts To Buy";
+  function giftsListV7(){
+    return {id:newId('list'), title:GIFTS_LIST_TITLE, calendarButtons:false, priceField:true, sectionLabel:'person', categories:[]};
+  }
+  function seedMoreListsV7(merged){
+    if(merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === GIFTS_LIST_TITLE.toLowerCase())) return;
+    const after = merged.moreLists.findIndex(l => (l.title||"").trim().toLowerCase() === SCHEDULE_LIST_TITLE.toLowerCase());
+    merged.moreLists.splice(after + 1, 0, giftsListV7());
   }
 
   // v5 = one-time add of "Chaddar" into "Things To Buy — Fatima" -> Hijab.
@@ -1318,7 +1363,7 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
-  save();
+  writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
     try{
@@ -1435,7 +1480,8 @@
         title: l.title,
         calendarButtons: !!l.calendarButtons,
         priceField: !!l.priceField,
-        categories: (Array.isArray(l.categories) && l.categories.length ? l.categories : [{name:'', items:[]}]).map(c => ({
+        sectionLabel: l.sectionLabel === 'person' ? 'person' : '',
+        categories: (Array.isArray(l.categories) && (l.categories.length || l.sectionLabel === 'person') ? l.categories : [{name:'', items:[]}]).map(c => ({
           name: (c && typeof c.name === 'string') ? c.name : '',
           items: (c && Array.isArray(c.items) ? c.items : []).filter(it => it && typeof it.text === 'string').map(it => ({text: it.text, done: !!it.done, price: (typeof it.price === 'string') ? it.price : ''}))
         }))
@@ -1456,6 +1502,9 @@
     }
     if(priorMoreListsSeed < 6){
       seedMoreListsV6(merged);
+    }
+    if(priorMoreListsSeed < 7){
+      seedMoreListsV7(merged);
     }
     merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
     if(saved.study && Array.isArray(saved.study.topics)){
@@ -1491,7 +1540,24 @@
 
   // A failed save (storage full, or storage blocked) used to throw silently, so later typing was
   // lost without any sign. Now it keeps a warning on screen until a save goes through again.
+  // Changes are written to storage a moment after they happen rather than on every keystroke:
+  // writing everything (photos included) each time made typing and adding items stall on phones.
+  // Several quick changes become one write, and anything waiting is written straight away when
+  // the page is closed or put in the background, so nothing is lost.
   function save(){
+    clearTimeout(save._w);
+    save._w = setTimeout(writeNow, SAVE_DELAY_MS);
+    save._pending = true;
+  }
+  function flushSave(){
+    if(!save._pending) return;
+    clearTimeout(save._w);
+    writeNow();
+  }
+  window.addEventListener('pagehide', flushSave);
+  document.addEventListener('visibilitychange', ()=>{ if(document.visibilityState === 'hidden') flushSave(); });
+  function writeNow(){
+    save._pending = false;
     const status = document.getElementById('saveStatus');
     const json = JSON.stringify(data);
     try{
@@ -1562,8 +1628,21 @@
       if(action) action();
     };
     toast.hidden = false;
+    placeToast();
     clearTimeout(showToast._t);
     showToast._t = setTimeout(()=>{ toast.hidden = true; }, actionLabel ? 8000 : 4000);
+  }
+  // Keeps the message just above the bottom of what's actually visible: on a phone with the
+  // keyboard open that's the top of the keyboard, not the bottom of the screen behind it.
+  function placeToast(){
+    const vv = window.visualViewport;
+    if(!vv) return;
+    const hiddenBelow = Math.max(0, window.innerHeight - (vv.offsetTop + vv.height));
+    document.getElementById('undoToast').style.bottom = (22 + hiddenBelow) + 'px';
+  }
+  if(window.visualViewport){
+    window.visualViewport.addEventListener('resize', placeToast);
+    window.visualViewport.addEventListener('scroll', placeToast);
   }
 
   // Shrinks a photo to PHOTO_MAX_DIM on its longest side as a JPEG, on a white background (JPEG has
@@ -1997,6 +2076,7 @@
     data.urgent.unshift({text: val, done:false});
     input.value = "";
     input.style.height = "";
+    input.focus();
     save(); renderUrgent();
   }
   // box can be dragged taller/shorter by its bottom-right corner, same as the routine and list
@@ -2037,6 +2117,7 @@
     data.urgentGrocery.unshift({text: val, done:false});
     input.value = "";
     input.style.height = "";
+    input.focus();
     save(); renderUrgentGrocery();
   }
   document.getElementById('urgentGroceryInput').addEventListener('keydown', (e)=>{
@@ -2074,6 +2155,7 @@
     data.thingsToDo.unshift({text: val, done:false});
     input.value = "";
     input.style.height = "";
+    input.focus();
     save(); renderThingsToDo();
   }
   document.getElementById('thingsToDoInput').addEventListener('keydown', (e)=>{
@@ -2112,6 +2194,7 @@
     data.vintedItems.unshift({text: val, posted:false, sold:false});
     input.value = "";
     input.style.height = "";
+    input.focus();
     save(); renderVinted();
   }
   document.getElementById('vintedInput').addEventListener('keydown', (e)=>{
@@ -3097,19 +3180,23 @@
       const card = document.createElement('div');
       card.className = 'collapse-card' + (openIds.has(list.id) ? ' open' : '');
       card.dataset.listId = list.id;
+      const isPeople = list.sectionLabel === 'person';
       let bodyHtml = '';
+      if(isPeople && list.categories.length === 0){
+        bodyHtml += '<p class="empty">No one added yet — type a name below, then add gift ideas under it.</p>';
+      }
       list.categories.forEach((cat, ci) => {
-        bodyHtml += '<div class="list-category">';
-        if(cat.name) bodyHtml += `<h3>${escapeHtml(cat.name)}</h3>`;
+        bodyHtml += `<div class="list-category${isPeople ? ' person' : ''}">`;
+        if(cat.name) bodyHtml += `<div class="section-head"><h3>${isPeople ? '🎁 ' : ''}${escapeHtml(cat.name)}</h3><button class="section-remove" data-remove-section-list="${list.id}" data-remove-section-cat="${ci}" title="Remove ${isPeople ? 'this person' : 'this section'}">Remove</button></div>`;
         bodyHtml += `
-          <div class="add-row">
-            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="Add an item..."></textarea>
+          <div class="add-row${list.priceField ? ' with-price' : ''}">
+            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `Add a gift idea for ${escapeAttr(cat.name)}...` : 'Add an item...'}"></textarea>
             ${list.priceField ? `<input type="text" class="list-item-price-input" data-list="${list.id}" data-cat="${ci}" placeholder="Price">` : ''}
             <button class="list-item-add-btn" data-list="${list.id}" data-cat="${ci}">Add</button>
           </div>
           <ul class="task-list">`;
         if(cat.items.length === 0){
-          bodyHtml += '<li class="empty">Nothing added yet.</li>';
+          bodyHtml += `<li class="empty">${isPeople ? 'No gift ideas yet.' : 'Nothing added yet.'}</li>`;
         } else {
           cat.items.forEach((item, ii) => {
             bodyHtml += `
@@ -3123,6 +3210,12 @@
         }
         bodyHtml += '</ul></div>';
       });
+      const sectionWord = isPeople ? 'person' : 'section';
+      bodyHtml += `
+        <div class="add-row add-section-row">
+          <input type="text" class="list-section-input" data-list="${list.id}" placeholder="${isPeople ? 'Add a person (their name)...' : 'Add a new section (e.g. Kitchen)...'}">
+          <button class="list-section-add-btn" data-list="${list.id}">+ Add ${sectionWord}</button>
+        </div>`;
       const isConfirming = list.id === deleteConfirmListId;
       const deleteControls = isConfirming
         ? `<button class="del confirm-del" data-confirm-remove-list="${list.id}">Yes, delete</button><button class="del" data-cancel-remove-list="${list.id}">Cancel</button>`
@@ -3165,6 +3258,27 @@
         const removeId = btn.dataset.confirmRemoveList;
         deleteConfirmListId = null;
         withUndo("List deleted", ()=>{ data.moreLists = data.moreLists.filter(l=>l.id!==removeId); });
+      });
+    });
+    wrap.querySelectorAll('.list-section-add-btn').forEach(btn=>{
+      btn.addEventListener('click', ()=> addListSection(btn.dataset.list));
+    });
+    wrap.querySelectorAll('.list-section-input').forEach(inp=>{
+      inp.addEventListener('keydown', (e)=>{
+        if(e.key === 'Enter'){ e.preventDefault(); addListSection(inp.dataset.list); }
+      });
+    });
+    wrap.querySelectorAll('[data-remove-section-list]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        const list = data.moreLists.find(l=>l.id===btn.dataset.removeSectionList);
+        if(!list) return;
+        const ci = Number(btn.dataset.removeSectionCat);
+        const name = list.categories[ci] ? list.categories[ci].name : '';
+        withUndo(`Removed “${name}”`, ()=>{
+          list.categories.splice(ci, 1);
+          // a plain list always keeps somewhere to add items; a people list may be empty
+          if(list.categories.length === 0 && list.sectionLabel !== 'person') list.categories.push({name:'', items:[]});
+        });
       });
     });
     wrap.querySelectorAll('.list-item-add-btn').forEach(btn=>{
@@ -3221,6 +3335,30 @@
     list.categories[catIdx].items.unshift({text: val, done:false, price});
     input.value = "";
     save(); renderMoreLists();
+    // the list was redrawn, so put the cursor back in the same section's box, ready for the next one
+    const again = document.querySelector(`.list-item-input[data-list="${listId}"][data-cat="${catIdx}"]`);
+    if(again) again.focus({preventScroll: true});
+  }
+  // New section at the end of a list — for the gifts list, a new person to buy for. After adding,
+  // the cursor goes straight into that section's own box, ready for the first idea.
+  function addListSection(listId){
+    const list = data.moreLists.find(l=>l.id===listId);
+    if(!list) return;
+    const input = document.querySelector(`.list-section-input[data-list="${listId}"]`);
+    const name = (input.value || '').trim();
+    if(!name) return;
+    const existing = list.categories.findIndex(c => (c.name||'').trim().toLowerCase() === name.toLowerCase());
+    let ci = existing;
+    if(existing === -1){
+      // an empty, unnamed starter section is replaced rather than left sitting above the new one
+      if(list.categories.length === 1 && !list.categories[0].name && list.categories[0].items.length === 0) list.categories = [];
+      list.categories.push({name, items:[]});
+      ci = list.categories.length - 1;
+    }
+    input.value = "";
+    save(); renderMoreLists();
+    const box = document.querySelector(`.list-item-input[data-list="${listId}"][data-cat="${ci}"]`);
+    if(box) box.focus();
   }
   function showNewListForm(){
     document.getElementById('newListFormCard').style.display = 'block';
@@ -3573,7 +3711,7 @@
   (function initFlowers(){
     const layer = document.getElementById('flowerLayer');
     const blooms = ['🌸','🌷','🌺','🌼'];
-    for(let i=0;i<10;i++){
+    for(let i=0;i<6;i++){
       const s = document.createElement('span');
       s.textContent = blooms[i % blooms.length];
       s.style.left = Math.random()*100 + 'vw';
