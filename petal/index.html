@@ -433,6 +433,16 @@
     .add-row.with-price textarea.list-item-input, .add-section-row input{ flex:1 1 100%; }
     .add-row.with-price input.list-item-price-input{ flex:1 1 auto; width:auto; }
   }
+  .add-toggle{
+    display:inline-block; margin-top:8px; padding:7px 14px; border-radius:16px; border:1px dashed var(--accent);
+    background:#fff; color:var(--accent-dark); font-family:inherit; font-size:.82rem; font-weight:600; cursor:pointer;
+  }
+  .add-person-wrap{ margin-top:6px; padding-top:12px; border-top:1px dashed var(--line); }
+  .add-done-btn{
+    background:#fff !important; color:var(--muted) !important; border:1px solid var(--line) !important;
+  }
+  .list-category.person .task-list:empty{ display:none; }
+  .list-category.person .add-row{ margin:10px 0 0; }
   .add-section-row{ margin-top:6px; padding-top:12px; border-top:1px dashed var(--line); }
   .add-section-row input{ flex:1; }
   .add-section-row button{ background:#fff !important; color:var(--accent-dark) !important; border:1px dashed var(--accent) !important; white-space:nowrap; }
@@ -3167,6 +3177,10 @@
   // return false/null with no dialog shown at all), so list deletion uses an inline two-step
   // confirm instead of window.confirm, and the calendar quick-add below skips window.prompt entirely.
   let deleteConfirmListId = null;
+  // In the gifts list the add boxes stay tucked away behind a "+ Add gift idea" / "+ Add person"
+  // button until needed, so each person reads as a tidy summary. Which one is open right now:
+  let peopleAddOpen = null;     // `${listId}|${sectionIndex}`: that person's gift box is showing
+  let peoplePersonOpen = null;  // listId: the "add a person" box is showing
   function renderMoreLists(){
     const wrap = document.getElementById('moreListsWrap');
     const openIds = new Set();
@@ -3183,19 +3197,27 @@
       const isPeople = list.sectionLabel === 'person';
       let bodyHtml = '';
       if(isPeople && list.categories.length === 0){
-        bodyHtml += '<p class="empty">No one added yet — type a name below, then add gift ideas under it.</p>';
+        bodyHtml += '<p class="empty">No one added yet — tap "+ Add person", then add gift ideas under their name.</p>';
       }
       list.categories.forEach((cat, ci) => {
         bodyHtml += `<div class="list-category${isPeople ? ' person' : ''}">`;
         if(cat.name) bodyHtml += `<div class="section-head"><h3>${isPeople ? '🎁 ' : ''}${escapeHtml(cat.name)}</h3><button class="section-remove" data-remove-section-list="${list.id}" data-remove-section-cat="${ci}" title="Remove ${isPeople ? 'this person' : 'this section'}">Remove</button></div>`;
-        bodyHtml += `
+        const addRow = `
           <div class="add-row${list.priceField ? ' with-price' : ''}">
-            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `Add a gift idea for ${escapeAttr(cat.name)}...` : 'Add an item...'}"></textarea>
+            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `Gift idea for ${escapeAttr(cat.name)}...` : 'Add an item...'}"></textarea>
             ${list.priceField ? `<input type="text" class="list-item-price-input" data-list="${list.id}" data-cat="${ci}" placeholder="Price">` : ''}
             <button class="list-item-add-btn" data-list="${list.id}" data-cat="${ci}">Add</button>
-          </div>
+            ${isPeople ? `<button class="add-done-btn" data-close-add="1">Done</button>` : ''}
+          </div>`;
+        const peopleAdd = peopleAddOpen === `${list.id}|${ci}`
+          ? addRow
+          : `<button class="add-toggle" data-open-add="${list.id}|${ci}">+ Add gift idea</button>`;
+        if(!isPeople) bodyHtml += addRow;
+        bodyHtml += `
           <ul class="task-list">`;
-        if(cat.items.length === 0){
+        if(cat.items.length === 0 && isPeople){
+          // nothing to list yet: the add button says it all
+        } else if(cat.items.length === 0){
           bodyHtml += `<li class="empty">${isPeople ? 'No gift ideas yet.' : 'Nothing added yet.'}</li>`;
         } else {
           cat.items.forEach((item, ii) => {
@@ -3208,14 +3230,20 @@
               </li>`;
           });
         }
-        bodyHtml += '</ul></div>';
+        bodyHtml += '</ul>' + (isPeople ? peopleAdd : '') + '</div>';
       });
       const sectionWord = isPeople ? 'person' : 'section';
-      bodyHtml += `
+      const sectionRow = `
         <div class="add-row add-section-row">
-          <input type="text" class="list-section-input" data-list="${list.id}" placeholder="${isPeople ? 'Add a person (their name)...' : 'Add a new section (e.g. Kitchen)...'}">
+          <input type="text" class="list-section-input" data-list="${list.id}" placeholder="${isPeople ? 'Their name...' : 'Add a new section (e.g. Kitchen)...'}">
           <button class="list-section-add-btn" data-list="${list.id}">+ Add ${sectionWord}</button>
+          ${isPeople ? `<button class="add-done-btn" data-close-person="1">Cancel</button>` : ''}
         </div>`;
+      if(!isPeople || peoplePersonOpen === list.id){
+        bodyHtml += sectionRow;
+      } else {
+        bodyHtml += `<div class="add-person-wrap"><button class="add-toggle add-person-toggle" data-open-person="${list.id}">+ Add person</button></div>`;
+      }
       const isConfirming = list.id === deleteConfirmListId;
       const deleteControls = isConfirming
         ? `<button class="del confirm-del" data-confirm-remove-list="${list.id}">Yes, delete</button><button class="del" data-cancel-remove-list="${list.id}">Cancel</button>`
@@ -3260,6 +3288,32 @@
         withUndo("List deleted", ()=>{ data.moreLists = data.moreLists.filter(l=>l.id!==removeId); });
       });
     });
+    wrap.querySelectorAll('[data-open-add]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        peopleAddOpen = btn.dataset.openAdd;
+        peoplePersonOpen = null;
+        renderMoreLists();
+        const [listId, ci] = peopleAddOpen.split('|');
+        const box = document.querySelector(`.list-item-input[data-list="${listId}"][data-cat="${ci}"]`);
+        if(box) box.focus();
+      });
+    });
+    wrap.querySelectorAll('[data-open-person]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        peoplePersonOpen = btn.dataset.openPerson;
+        peopleAddOpen = null;
+        renderMoreLists();
+        const box = document.querySelector(`.list-section-input[data-list="${peoplePersonOpen}"]`);
+        if(box) box.focus();
+      });
+    });
+    wrap.querySelectorAll('[data-close-add], [data-close-person]').forEach(btn=>{
+      btn.addEventListener('click', ()=>{
+        peopleAddOpen = null;
+        peoplePersonOpen = null;
+        renderMoreLists();
+      });
+    });
     wrap.querySelectorAll('.list-section-add-btn').forEach(btn=>{
       btn.addEventListener('click', ()=> addListSection(btn.dataset.list));
     });
@@ -3274,6 +3328,7 @@
         if(!list) return;
         const ci = Number(btn.dataset.removeSectionCat);
         const name = list.categories[ci] ? list.categories[ci].name : '';
+        peopleAddOpen = null;
         withUndo(`Removed “${name}”`, ()=>{
           list.categories.splice(ci, 1);
           // a plain list always keeps somewhere to add items; a people list may be empty
@@ -3356,6 +3411,8 @@
       ci = list.categories.length - 1;
     }
     input.value = "";
+    peoplePersonOpen = null;
+    if(list.sectionLabel === 'person') peopleAddOpen = `${listId}|${ci}`;
     save(); renderMoreLists();
     const box = document.querySelector(`.list-item-input[data-list="${listId}"][data-cat="${ci}"]`);
     if(box) box.focus();
