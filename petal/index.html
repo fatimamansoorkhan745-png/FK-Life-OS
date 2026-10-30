@@ -1347,6 +1347,19 @@
   // Greggs at the top of things to do
   // Added 21 Oct 2026: Pepsi cans at the end of the urgent grocery list, and Lego for Abdullah in
   // "Things To Buy — Abdullah" (top of the list, like items she adds herself)
+  // Added 30 Oct 2026: four urgent buys at the top of the urgent grocery list, in the order she
+  // gave them (once per browser, and never twice if one is already there)
+  (function seedOct30(){
+    const FLAG = STORE_KEY + ':seed-2026-10-30';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const items = ["Scissors", "Wrapping paper", "Gift for Emma", "M&S bakery item for Mehvesh"];
+      const have = new Set(data.urgentGrocery.map(it => (it.text || '').trim().toLowerCase()));
+      const toAdd = items.filter(t => !have.has(t.toLowerCase())).map(t => ({text: t, done: false}));
+      data.urgentGrocery = toAdd.concat(data.urgentGrocery);
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedOct21(){
     const FLAG = STORE_KEY + ':seed-2026-10-21';
     try{
