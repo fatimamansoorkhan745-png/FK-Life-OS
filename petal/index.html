@@ -623,6 +623,7 @@
   <section id="food">
     <h1>Food</h1>
     <div class="sub">Click Breakfast, Lunch, or Dinner, then scroll sideways through the days. Each entry has a calendar button too.</div>
+    <div id="foodLikesWrap"></div>
     <div id="foodList"></div>
   </section>
 
@@ -1310,7 +1311,7 @@
     });
     return {
       urgent: [], urgentGrocery: [], thingsToDo: [], vintedItems: [], routineWeeks, recurring, toddlerSeedVersion: TODDLER_SEED_VERSION,
-      food, foodSeedVersion: FOOD_SEED_VERSION, prayerSeededWeeks: [], routineCellVersion: ROUTINE_CELL_VERSION,
+      food, foodSeedVersion: FOOD_SEED_VERSION, foodLikes: defaultFoodLikes(), prayerSeededWeeks: [], routineCellVersion: ROUTINE_CELL_VERSION,
       journal: [], calendarLog: [], more: "", moreDrawing: "", moreLists: defaultMoreLists(), moreListsSeedVersion: MORE_LISTS_SEED_VERSION,
       study: {topics: defaultStudyTopics()}, studySeedVersion: STUDY_SEED_VERSION
     };
@@ -1489,6 +1490,13 @@
       });
     }
     merged.foodSeedVersion = FOOD_SEED_VERSION;
+    if(Array.isArray(saved.foodLikes)){
+      merged.foodLikes = saved.foodLikes.filter(sec => sec && typeof sec.name === 'string').map(sec => ({
+        id: safeId(sec.id, 'likes'),
+        name: sec.name,
+        items: (Array.isArray(sec.items) ? sec.items : []).filter(it => it && typeof it.text === 'string').map(it => ({text: it.text}))
+      }));
+    }
     if(Array.isArray(saved.prayerSeededWeeks)){
       merged.prayerSeededWeeks = saved.prayerSeededWeeks.slice();
     } else if(typeof saved.prayerSeedVersion === "number" && saved.prayerSeedVersion >= 1){
@@ -2656,6 +2664,47 @@
     });
   }
 
+  // What Abdullah likes to eat — two sections at the top of the Food tab, each a simple list with
+  // its own box to add more. Seeded with the first favourites she gave.
+  function defaultFoodLikes(){
+    return [
+      {id:newId('likes'), name:"Abdullah likes: lunch & dinner", items:[{text:"Mashed potatoes"}, {text:"Chicken or mutton pulao"}]},
+      {id:newId('likes'), name:"Abdullah likes: breakfast", items:[]}
+    ];
+  }
+  function renderFoodLikes(){
+    const wrap = document.getElementById('foodLikesWrap');
+    wrap.innerHTML = data.foodLikes.map((sec, si) => `
+      <div class="card food-likes-card">
+        <h2>${escapeHtml(sec.name)}</h2>
+        <div class="add-row">
+          <textarea rows="1" class="list-item-input food-like-input" data-like-sec="${si}" placeholder="Add something he likes..."></textarea>
+          <button class="food-like-add" data-like-sec="${si}">Add</button>
+        </div>
+        <ul class="task-list">${sec.items.length ? sec.items.map((it, ii) => `
+          <li><span class="txt">${escapeHtml(it.text)}</span><button class="del" data-like-del="${si}|${ii}">Remove</button></li>`).join('')
+          : '<li class="empty">Nothing added yet.</li>'}
+        </ul>
+      </div>`).join('');
+    wrap.querySelectorAll('.food-like-add').forEach(btn=> btn.addEventListener('click', ()=> addFoodLike(Number(btn.dataset.likeSec))));
+    wrap.querySelectorAll('.food-like-input').forEach(inp=> inp.addEventListener('keydown', (e)=>{
+      if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); addFoodLike(Number(inp.dataset.likeSec)); }
+    }));
+    wrap.querySelectorAll('[data-like-del]').forEach(btn=> btn.addEventListener('click', ()=>{
+      const [si, ii] = btn.dataset.likeDel.split('|').map(Number);
+      withUndo("Removed", ()=>{ data.foodLikes[si].items.splice(ii, 1); });
+    }));
+  }
+  function addFoodLike(si){
+    const input = document.querySelector(`.food-like-input[data-like-sec="${si}"]`);
+    const val = (input.value || '').trim();
+    if(!val || !data.foodLikes[si]) return;
+    data.foodLikes[si].items.push({text: val});
+    save(); renderFoodLikes();
+    const again = document.querySelector(`.food-like-input[data-like-sec="${si}"]`);
+    if(again) again.focus({preventScroll: true});
+  }
+
   // Journal
   function todayISO(){
     const d = new Date();
@@ -3548,7 +3597,7 @@
   });
 
   function renderAll(){
-    renderUrgent(); renderUrgentGrocery(); renderThingsToDo(); renderVinted(); renderRoutine(); renderFood(); renderJournal(); renderStudy(); renderCalLog(); renderMore(); renderMoreLists();
+    renderUrgent(); renderUrgentGrocery(); renderThingsToDo(); renderVinted(); renderRoutine(); renderFoodLikes(); renderFood(); renderJournal(); renderStudy(); renderCalLog(); renderMore(); renderMoreLists();
   }
 
   // Live Google Calendar view — month grid + click-a-day detail, like the Google Calendar app.
