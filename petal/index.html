@@ -1372,6 +1372,21 @@
   // "Things To Buy — Abdullah" (top of the list, like items she adds herself)
   // Added 30 Oct 2026: four urgent buys at the top of the urgent grocery list, in the order she
   // gave them (once per browser, and never twice if one is already there)
+  // Added 1 Nov 2026: the people to buy for in Karachi, in the order she gave them, each as a
+  // person in "Gifts for Karachi" (once per browser; anyone already there isn't added twice)
+  (function seedKarachiNamesNov1(){
+    const FLAG = STORE_KEY + ':seed-2026-11-01-karachi-names';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const list = data.moreLists.find(l => l.tab === 'karachi' && l.sectionLabel === 'person');
+      if(!list) return;
+      const names = ["Abbu", "Ammi", "Noman", "Hamza", "Umer Bhai", "Bhabhi", "Anusha", "Musa", "Aisha",
+        "Margona (Amber Baji's daughter)", "Kashaf (Amber Baji's daughter)", "Mariam (Amber Baji's daughter)"];
+      const have = new Set(list.categories.map(c => (c.name || '').trim().toLowerCase()));
+      names.forEach(name => { if(!have.has(name.toLowerCase())) list.categories.push({name, items: []}); });
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedOct30(){
     const FLAG = STORE_KEY + ':seed-2026-10-30';
     try{
