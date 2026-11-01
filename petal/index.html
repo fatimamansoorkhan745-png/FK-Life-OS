@@ -443,6 +443,7 @@
   }
   .list-category.person .task-list:empty{ display:none; }
   .list-category.person .add-row{ margin:10px 0 0; }
+  #karachiListsWrap .collapse-head h2{ color:var(--accent-dark); }
   .add-section-row{ margin-top:6px; padding-top:12px; border-top:1px dashed var(--line); }
   .add-section-row input{ flex:1; }
   .add-section-row button{ background:#fff !important; color:var(--accent-dark) !important; border:1px dashed var(--accent) !important; white-space:nowrap; }
@@ -549,6 +550,7 @@
   <button class="nav-btn" data-target="journal">Daily Journal</button>
   <button class="nav-btn" data-target="study">Study</button>
   <button class="nav-btn" data-target="calendar">Calendar</button>
+  <button class="nav-btn" data-target="karachi">Karachi Trip</button>
   <button class="nav-btn" data-target="more">More</button>
   <div class="save-status" id="saveStatus"></div>
   <div class="backup-box">
@@ -690,6 +692,12 @@
       </div>
       <div class="cal-list" id="calList"></div>
     </div>
+  </section>
+
+  <section id="karachi">
+    <h1>Karachi Trip</h1>
+    <div class="sub">Gift options for everyone in Karachi, and a checklist of what to take — tick things off as they go in the suitcase.</div>
+    <div id="karachiListsWrap"></div>
   </section>
 
   <section id="more">
@@ -993,6 +1001,7 @@
     return [
       scheduleListV6(),
       giftsListV7(),
+      ...karachiListsV8(),
       {id:newId('list'), title:"Foods Abdullah Likes", calendarButtons:false, categories:[
         {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
       ]},
@@ -1024,7 +1033,7 @@
   }
   // v2 = added the "Neighbors" list, and made sure every "Things To Buy" list has its price field —
   // both applied once to lists that already existed before those features did.
-  const MORE_LISTS_SEED_VERSION = 7;
+  const MORE_LISTS_SEED_VERSION = 8;
   const PRICE_FIELD_LIST_TITLES = ["Things To Buy — Home", "Things To Buy — Abdullah", "Things To Buy — Fatima", "Things To Buy — Husband"];
   function seedMoreListsV2(merged){
     const hasNeighbors = merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === "neighbors");
@@ -1134,6 +1143,19 @@
       const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
       sec.items.forEach(text=>{ if(!existing.has(text.toLowerCase())) cat.items.push({text, done:false, price:''}); });
     });
+  }
+
+  // v8 = the Karachi Trip tab's two lists: gifts (a section per person, with prices) and a packing
+  // checklist of things to take
+  function karachiListsV8(){
+    return [
+      {id:newId('list'), title:"Gifts for Karachi", tab:'karachi', calendarButtons:false, priceField:true, sectionLabel:'person', categories:[]},
+      {id:newId('list'), title:"Things to take with me", tab:'karachi', calendarButtons:false, priceField:false, categories:[{name:'', items:[]}]}
+    ];
+  }
+  function seedMoreListsV8(merged){
+    if(merged.moreLists.some(l => l.tab === 'karachi')) return;
+    merged.moreLists.push(...karachiListsV8());
   }
 
   // v7 = a "Gifts To Buy" list, placed just after "Things To Schedule": each section is a person
@@ -1510,6 +1532,7 @@
         id: safeId(l.id, 'list'),
         title: l.title,
         calendarButtons: !!l.calendarButtons,
+        tab: l.tab === 'karachi' ? 'karachi' : '',
         priceField: !!l.priceField,
         sectionLabel: l.sectionLabel === 'person' ? 'person' : '',
         categories: (Array.isArray(l.categories) && (l.categories.length || l.sectionLabel === 'person') ? l.categories : [{name:'', items:[]}]).map(c => ({
@@ -1536,6 +1559,9 @@
     }
     if(priorMoreListsSeed < 7){
       seedMoreListsV7(merged);
+    }
+    if(priorMoreListsSeed < 8){
+      seedMoreListsV8(merged);
     }
     merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
     if(saved.study && Array.isArray(saved.study.topics)){
@@ -3243,37 +3269,45 @@
   // button until needed, so each person reads as a tidy summary. Which one is open right now:
   let peopleAddOpen = null;     // `${listId}|${sectionIndex}`: that person's gift box is showing
   let peoplePersonOpen = null;  // listId: the "add a person" box is showing
+  // Lists live in data.moreLists. Most show in the More tab; ones marked with a tab (the Karachi
+  // trip lists) show in that tab instead, and start open there.
   function renderMoreLists(){
-    const wrap = document.getElementById('moreListsWrap');
+    renderListGroup(document.getElementById('moreListsWrap'), data.moreLists.filter(l => !l.tab),
+      '<p class="empty">No lists yet — add one below.</p>');
+    renderListGroup(document.getElementById('karachiListsWrap'), data.moreLists.filter(l => l.tab === 'karachi'), '');
+  }
+  function renderListGroup(wrap, lists, emptyHtml){
     const openIds = new Set();
     wrap.querySelectorAll('.collapse-card.open').forEach(c => openIds.add(c.dataset.listId));
-    if(data.moreLists.length === 0){
-      wrap.innerHTML = '<p class="empty">No lists yet — add one below.</p>';
+    const firstTime = !wrap.dataset.rendered;
+    wrap.dataset.rendered = '1';
+    if(lists.length === 0){
+      wrap.innerHTML = emptyHtml;
       return;
     }
     wrap.innerHTML = "";
-    data.moreLists.forEach(list => {
+    lists.forEach(list => {
       const card = document.createElement('div');
-      card.className = 'collapse-card' + (openIds.has(list.id) ? ' open' : '');
+      card.className = 'collapse-card' + (openIds.has(list.id) || (firstTime && list.tab) ? ' open' : '');
       card.dataset.listId = list.id;
       const isPeople = list.sectionLabel === 'person';
       let bodyHtml = '';
       if(isPeople && list.categories.length === 0){
-        bodyHtml += '<p class="empty">No one added yet — tap "+ Add person", then add gift ideas under their name.</p>';
+        bodyHtml += '<p class="empty">No one added yet — tap "+ Add person", then add gift options under their name.</p>';
       }
       list.categories.forEach((cat, ci) => {
         bodyHtml += `<div class="list-category${isPeople ? ' person' : ''}">`;
         if(cat.name) bodyHtml += `<div class="section-head"><h3>${isPeople ? '🎁 ' : ''}${escapeHtml(cat.name)}</h3><button class="section-remove" data-remove-section-list="${list.id}" data-remove-section-cat="${ci}" title="Remove ${isPeople ? 'this person' : 'this section'}">Remove</button></div>`;
         const addRow = `
           <div class="add-row${list.priceField ? ' with-price' : ''}">
-            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `Gift idea for ${escapeAttr(cat.name)}...` : 'Add an item...'}"></textarea>
+            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `${list.tab ? 'Gift option' : 'Gift idea'} for ${escapeAttr(cat.name)}...` : list.tab ? 'Something to take...' : 'Add an item...'}"></textarea>
             ${list.priceField ? `<input type="text" class="list-item-price-input" data-list="${list.id}" data-cat="${ci}" placeholder="Price">` : ''}
             <button class="list-item-add-btn" data-list="${list.id}" data-cat="${ci}">Add</button>
             ${isPeople ? `<button class="add-done-btn" data-close-add="1">Done</button>` : ''}
           </div>`;
         const peopleAdd = peopleAddOpen === `${list.id}|${ci}`
           ? addRow
-          : `<button class="add-toggle" data-open-add="${list.id}|${ci}">+ Add gift idea</button>`;
+          : `<button class="add-toggle" data-open-add="${list.id}|${ci}">+ Add gift ${list.tab ? 'option' : 'idea'}</button>`;
         if(!isPeople) bodyHtml += addRow;
         bodyHtml += `
           <ul class="task-list">`;
@@ -3307,7 +3341,7 @@
         bodyHtml += `<div class="add-person-wrap"><button class="add-toggle add-person-toggle" data-open-person="${list.id}">+ Add person</button></div>`;
       }
       const isConfirming = list.id === deleteConfirmListId;
-      const deleteControls = isConfirming
+      const deleteControls = list.tab ? '' : isConfirming
         ? `<button class="del confirm-del" data-confirm-remove-list="${list.id}">Yes, delete</button><button class="del" data-cancel-remove-list="${list.id}">Cancel</button>`
         : `<button class="del" data-remove-list="${list.id}" title="Delete this list">Delete list</button>`;
       card.innerHTML = `
