@@ -1388,6 +1388,19 @@
   // person in "Gifts for Karachi" (once per browser; anyone already there isn't added twice)
   // Added 3 Nov 2026: her husband Faisal in "Gifts To Buy", with Reebok shoes in his size
   // (once per browser; nothing doubled if he or the shoes are already there)
+  // Added 3 Nov 2026: second gift purchase, a River Island bag (once per browser, and not twice
+  // if it's already in the list)
+  (function seedRiverIslandBagNov3(){
+    const FLAG = STORE_KEY + ':seed-2026-11-03-river-island-bag';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /river island/i.test(pu.text) && pu.amount === 13.49)){
+        ks.purchases.unshift({id: newId('buy'), text: "Bag, white & light brown (River Island)", amount: 13.49, date: "2026-11-03"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedFaisalShoesNov3(){
     const FLAG = STORE_KEY + ':seed-2026-11-03-faisal-shoes';
     try{
