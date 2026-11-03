@@ -1386,6 +1386,23 @@
   // gave them (once per browser, and never twice if one is already there)
   // Added 1 Nov 2026: the people to buy for in Karachi, in the order she gave them, each as a
   // person in "Gifts for Karachi" (once per browser; anyone already there isn't added twice)
+  // Added 3 Nov 2026: her husband Faisal in "Gifts To Buy", with Reebok shoes in his size
+  // (once per browser; nothing doubled if he or the shoes are already there)
+  (function seedFaisalShoesNov3(){
+    const FLAG = STORE_KEY + ':seed-2026-11-03-faisal-shoes';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const list = data.moreLists.find(l => !l.tab && (l.title || '').trim().toLowerCase() === GIFTS_LIST_TITLE.toLowerCase());
+      if(!list) return;
+      let person = list.categories.find(c => (c.name || '').trim().toLowerCase() === 'faisal');
+      if(!person){ person = {name: 'Faisal', items: []}; list.categories.push(person); }
+      const gift = 'Reebok shoes — size 7.5 UK';
+      if(!person.items.some(it => (it.text || '').trim().toLowerCase().startsWith('reebok shoes'))){
+        person.items.unshift({text: gift, done: false, price: ''});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedKarachiNamesNov1(){
     const FLAG = STORE_KEY + ':seed-2026-11-01-karachi-names';
     try{
