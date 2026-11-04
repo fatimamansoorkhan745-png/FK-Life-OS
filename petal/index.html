@@ -453,6 +453,15 @@
   .spend-bar.over span{ background:var(--urgent); }
   .spend-list li .item-price{ flex-shrink:0; }
   .spend-date{ color:var(--muted); font-size:.8rem; }
+  .spend-list li{ flex-wrap:wrap; }
+  .spend-for-row{ flex-basis:100%; font-size:.8rem; color:var(--muted); margin:-2px 0 2px 0; }
+  select.spend-for{
+    font-family:inherit; font-size:.85rem; color:var(--ink); background:#fffdfe; border:1px solid var(--line);
+    border-radius:12px; padding:6px 10px; max-width:100%;
+  }
+  .spend-add select.spend-for{ flex:1 1 140px; padding:10px 12px; }
+  .spend-people{ display:flex; flex-wrap:wrap; gap:6px; margin:-6px 0 14px; }
+  .spend-person{ font-size:.78rem; background:var(--accent-soft); color:var(--accent-dark); padding:4px 10px; border-radius:12px; }
   .spend-budget{ margin-top:12px; font-size:.82rem; color:var(--muted); }
   .spend-budget input{ width:80px; padding:5px 8px; border-radius:10px; }
   .add-section-row{ margin-top:6px; padding-top:12px; border-top:1px dashed var(--line); }
@@ -1490,6 +1499,21 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 4 Nov 2026: a Next men's jumper for Umer Bhai, and the Jon Richard set marked as for
+  // Ammi. Runs after the other one-time additions, so the set is already there to mark. (Once per browser; the jumper isn't added twice, and a "for" she's set herself is kept)
+  (function seedNextJumperNov4(){
+    const FLAG = STORE_KEY + ':seed-2026-11-04-next-jumper';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /jumper/i.test(pu.text) && pu.amount === 10)){
+        ks.purchases.unshift({id: newId('buy'), text: "Men's jumper, XL (Next)", amount: 10, forWhom: "Umer Bhai", date: "2026-11-04"});
+      }
+      const jewellery = ks.purchases.find(pu => /richard/i.test(pu.text));
+      if(jewellery && !jewellery.forWhom) jewellery.forWhom = "Ammi";
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
@@ -1600,6 +1624,7 @@
         purchases: (Array.isArray(ks.purchases) ? ks.purchases : [])
           .filter(pu => pu && typeof pu.text === 'string' && isFinite(Number(pu.amount)))
           .map(pu => ({id: safeId(pu.id, 'buy'), text: pu.text, amount: Math.round(Number(pu.amount) * 100) / 100,
+            forWhom: typeof pu.forWhom === 'string' ? pu.forWhom : '',
             date: (typeof pu.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(pu.date)) ? pu.date : ''}))
       };
     }
@@ -2793,9 +2818,25 @@
     const n = Number(String(str || '').replace(/[£,\s]/g, ''));
     return isFinite(n) && n > 0 ? Math.round(n * 100) / 100 : null;
   }
+  // Who a purchase can be for: everyone in "Gifts for Karachi", plus anyone already picked
+  function karachiPeople(){
+    const list = data.moreLists.find(l => l.tab === 'karachi' && l.sectionLabel === 'person');
+    const names = list ? list.categories.map(c => c.name).filter(Boolean) : [];
+    data.karachiSpend.purchases.forEach(pu => { if(pu.forWhom && !names.includes(pu.forWhom)) names.push(pu.forWhom); });
+    return names;
+  }
+  function forWhomSelect(attrs, current){
+    const people = karachiPeople();
+    return `<select ${attrs}>
+      <option value="">${current ? 'Not decided yet' : 'Who for?'}</option>
+      ${people.map(n => `<option value="${escapeAttr(n)}"${n === current ? ' selected' : ''}>${escapeHtml(n)}</option>`).join('')}
+    </select>`;
+  }
   function renderKarachiSpend(){
     const wrap = document.getElementById('karachiSpendWrap');
     const ks = data.karachiSpend;
+    const perPerson = {};
+    ks.purchases.forEach(pu => { if(pu.forWhom) perPerson[pu.forWhom] = (perPerson[pu.forWhom] || 0) + pu.amount; });
     const spent = ks.purchases.reduce((sum, pu) => sum + pu.amount, 0);
     const left = ks.budget - spent;
     const pct = Math.min(100, Math.round(spent / ks.budget * 100));
@@ -2808,15 +2849,19 @@
           <div class="spend-left">${over ? `${money(-left)} over budget` : `${money(left)} left`}</div>
         </div>
         <div class="spend-bar${over ? ' over' : ''}"><span style="width:${pct}%"></span></div>
+        ${Object.keys(perPerson).length ? `<div class="spend-people">${Object.keys(perPerson).map(n =>
+          `<span class="spend-person">${escapeHtml(n)}: <strong>${money(perPerson[n])}</strong></span>`).join('')}</div>` : ''}
         <div class="add-row with-price spend-add">
           <textarea rows="1" class="list-item-input" id="spendText" placeholder="What did you buy?"></textarea>
           <input type="text" class="list-item-price-input" id="spendAmount" inputmode="decimal" placeholder="£ amount">
+          ${forWhomSelect('id="spendFor" class="spend-for"', '')}
           <button id="spendAddBtn">Add</button>
         </div>
         <ul class="task-list spend-list">${ks.purchases.length ? ks.purchases.map((pu, i) => `
           <li><span class="txt">${escapeHtml(pu.text)}${pu.date ? ` <span class="spend-date">· ${escapeHtml(new Date(pu.date + 'T00:00:00').toLocaleDateString('en-GB', {day:'numeric', month:'short'}))}</span>` : ''}</span>
             <span class="item-price">${money(pu.amount)}</span>
-            <button class="del" data-spend-del="${i}">Remove</button></li>`).join('')
+            <button class="del" data-spend-del="${i}">Remove</button>
+            <div class="spend-for-row">For: ${forWhomSelect(`class="spend-for" data-spend-for="${i}"`, pu.forWhom)}</div></li>`).join('')
           : '<li class="empty">Nothing bought yet.</li>'}
         </ul>
         <div class="spend-budget">Budget: £<input type="text" id="spendBudget" inputmode="decimal" value="${ks.budget}"></div>
@@ -2827,7 +2872,7 @@
       const amount = parseMoney(amountEl.value);
       if(!text){ textEl.focus(); return; }
       if(amount === null){ showToast("Add how much it cost, e.g. 5.09"); amountEl.focus(); return; }
-      ks.purchases.unshift({id: newId('buy'), text, amount, date: todayISO()});
+      ks.purchases.unshift({id: newId('buy'), text, amount, forWhom: document.getElementById('spendFor').value, date: todayISO()});
       save(); renderKarachiSpend();
       document.getElementById('spendText').focus({preventScroll: true});
     };
@@ -2837,6 +2882,10 @@
     }));
     wrap.querySelectorAll('[data-spend-del]').forEach(btn => btn.addEventListener('click', ()=>{
       withUndo("Purchase removed", ()=>{ ks.purchases.splice(Number(btn.dataset.spendDel), 1); });
+    }));
+    wrap.querySelectorAll('[data-spend-for]').forEach(sel => sel.addEventListener('change', ()=>{
+      ks.purchases[Number(sel.dataset.spendFor)].forWhom = sel.value;
+      save(); renderKarachiSpend();
     }));
     document.getElementById('spendBudget').addEventListener('change', (e)=>{
       const b = parseMoney(e.target.value);
