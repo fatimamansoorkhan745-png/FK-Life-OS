@@ -1391,6 +1391,18 @@
   // Added 3 Nov 2026: second gift purchase, a River Island bag (once per browser, and not twice
   // if it's already in the list)
   // Added 4 Nov 2026: a Jon Richard jewellery set (once per browser, not twice if already there)
+  // Added 4 Nov 2026: a purple Ted Baker gift set (once per browser, not twice if already there)
+  (function seedTedBakerSetNov4(){
+    const FLAG = STORE_KEY + ':seed-2026-11-04-ted-baker-set';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /ted baker/i.test(pu.text) && pu.amount === 8)){
+        ks.purchases.unshift({id: newId('buy'), text: "Gift set, purple (Ted Baker)", amount: 8, date: "2026-11-04"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedJonRichardSetNov4(){
     const FLAG = STORE_KEY + ':seed-2026-11-04-jon-richard-set';
     try{
