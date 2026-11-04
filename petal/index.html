@@ -1390,6 +1390,18 @@
   // (once per browser; nothing doubled if he or the shoes are already there)
   // Added 3 Nov 2026: second gift purchase, a River Island bag (once per browser, and not twice
   // if it's already in the list)
+  // Added 4 Nov 2026: a Jon Richard jewellery set (once per browser, not twice if already there)
+  (function seedJonRichardSetNov4(){
+    const FLAG = STORE_KEY + ':seed-2026-11-04-jon-richard-set';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /richard/i.test(pu.text) && pu.amount === 10.54)){
+        ks.purchases.unshift({id: newId('buy'), text: "Jewellery set (Jon Richard)", amount: 10.54, date: "2026-11-04"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   (function seedRiverIslandBagNov3(){
     const FLAG = STORE_KEY + ':seed-2026-11-03-river-island-bag';
     try{
