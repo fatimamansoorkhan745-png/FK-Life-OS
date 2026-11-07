@@ -1619,6 +1619,18 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 7 Nov 2026: an M&S Formula facial cream collection box (once per browser, not twice)
+  (function seedMsFormulaBoxNov7(){
+    const FLAG = STORE_KEY + ':seed-2026-11-07-ms-formula-box';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /formula/i.test(pu.text) && pu.amount === 7)){
+        ks.purchases.unshift({id: newId('buy'), text: "Facial cream collection box (M&S Formula)", amount: 7, forWhom: "", date: "2026-11-07"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
