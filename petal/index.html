@@ -1607,6 +1607,18 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 7 Nov 2026: a white Ted Baker handbag for Ammi (once per browser, not twice if already there)
+  (function seedTedBakerHandbagNov7(){
+    const FLAG = STORE_KEY + ':seed-2026-11-07-ted-baker-handbag';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /ted baker/i.test(pu.text) && /handbag/i.test(pu.text))){
+        ks.purchases.unshift({id: newId('buy'), text: "Handbag, white (Ted Baker)", amount: 30, forWhom: "Ammi", date: "2026-11-07"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
