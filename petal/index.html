@@ -1631,6 +1631,18 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 7 Nov 2026: a Tommy Hilfiger t-shirt for Noman (once per browser, not twice)
+  (function seedTommyTshirtNov7(){
+    const FLAG = STORE_KEY + ':seed-2026-11-07-tommy-tshirt';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /tommy/i.test(pu.text) && pu.amount === 13)){
+        ks.purchases.unshift({id: newId('buy'), text: "T-shirt (Tommy Hilfiger)", amount: 13, forWhom: "Noman", date: "2026-11-07"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
