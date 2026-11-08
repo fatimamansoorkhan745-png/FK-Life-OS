@@ -1671,6 +1671,18 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026: the Ted Baker orange polo shirt (size M) for Umer Bhai (once per browser)
+  (function seedTedBakerPoloNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-ted-baker-polo';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /ted baker/i.test(pu.text) && /polo|t-shirt/i.test(pu.text))){
+        ks.purchases.unshift({id: newId('buy'), text: "Polo shirt, orange, size M (Ted Baker)", amount: 30, forWhom: "Umer Bhai", date: "2026-11-08"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
