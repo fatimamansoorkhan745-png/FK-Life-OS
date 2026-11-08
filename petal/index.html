@@ -1712,6 +1712,29 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026, her corrections: the purple Ted Baker gift set (£8) and a Ted Baker perfume
+  // (£8.44) are two separate purchases; who the shirts are for, and their sizes.
+  (function seedGiftCorrectionsNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-gift-corrections';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      const find = test => ks.purchases.find(p => test(p.text));
+      const giftSet = find(t => /ted baker/i.test(t) && /gift set/i.test(t));
+      if(giftSet && giftSet.amount === 8.44){ giftSet.amount = 8; giftSet.text = "Gift set, purple (Ted Baker)"; }
+      if(!ks.purchases.some(p => /ted baker/i.test(p.text) && /perfume/i.test(p.text) && !/gift set/i.test(p.text))){
+        const at = ks.purchases.indexOf(giftSet);
+        const perfume = {id: newId('buy'), text: "Perfume (Ted Baker)", amount: 8.44, forWhom: "", date: "2026-11-08"};
+        if(at === -1) ks.purchases.unshift(perfume); else ks.purchases.splice(at, 0, perfume);
+      }
+      const set = (test, changes)=>{ const p = find(test); if(p) Object.assign(p, changes); };
+      set(t => /tommy hilfiger/i.test(t) && /t-shirt/i.test(t), {forWhom: "Hamza"});
+      set(t => /boss/i.test(t) && /t-shirt/i.test(t), {text: "T-shirt, XXL (Boss)", forWhom: "Hamza"});
+      set(t => /boss/i.test(t) && /polo/i.test(t), {text: "Men's polo top, size M (Boss)", forWhom: "Noman"});
+      set(t => /ted baker/i.test(t) && /polo/i.test(t), {text: "Polo shirt, orange, size XL (Ted Baker)", forWhom: "Umer Bhai"});
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
