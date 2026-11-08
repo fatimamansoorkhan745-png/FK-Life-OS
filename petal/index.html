@@ -1759,6 +1759,33 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026: Amma (not Ammi) joins the Karachi gift list and the Ted Baker perfume is
+  // hers; perfumes still to buy for Abbu (about £50) and Umer Bhai (about £30–40) go in as gift
+  // options under their names, not as spending, until they're bought.
+  (function seedAmmaAndPerfumesNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-amma-perfumes';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const people = data.moreLists.find(l => l.tab === 'karachi' && l.sectionLabel === 'person');
+      if(people){
+        const person = name => {
+          let c = people.categories.find(x => (x.name || '').trim().toLowerCase() === name.toLowerCase());
+          if(!c){ c = {name, items: []}; people.categories.push(c); }
+          return c;
+        };
+        person("Amma");
+        const toBuy = (name, text, price)=>{
+          const c = person(name);
+          if(!c.items.some(it => /perfume/i.test(it.text || ''))) c.items.unshift({text, done: false, price});
+        };
+        toBuy("Abbu", "Perfume (still to buy)", "£50");
+        toBuy("Umer Bhai", "Perfume (still to buy)", "£30–40");
+      }
+      const tbPerfume = data.karachiSpend.purchases.find(p => /^perfume \(ted baker\)/i.test(p.text));
+      if(tbPerfume && (!tbPerfume.forWhom || tbPerfume.forWhom === "Ammi")) tbPerfume.forWhom = "Amma";
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
