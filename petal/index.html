@@ -1735,6 +1735,30 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026: the Ted Baker wash bag was for herself, so it comes off the gift list; who
+  // the rest are for, including Usman Bhai's wife, who joins the Karachi gift list.
+  (function seedGiftAssignmentsNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-gift-assignments';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      ks.purchases = ks.purchases.filter(p => !(/wash bag/i.test(p.text) && /ted baker/i.test(p.text) && p.amount === 3.71));
+      const people = data.moreLists.find(l => l.tab === 'karachi' && l.sectionLabel === 'person');
+      const newPerson = "Usman Bhai's wife";
+      if(people && !people.categories.some(c => (c.name || '').trim().toLowerCase() === newPerson.toLowerCase())){
+        people.categories.push({name: newPerson, items: []});
+      }
+      const assign = (test, who)=>{ const p = ks.purchases.find(x => test(x.text)); if(p) p.forWhom = who; };
+      assign(t => /tommy girl/i.test(t), "Mariam (Amber Baji's daughter)");
+      assign(t => /summer sun/i.test(t), "Ammi");
+      assign(t => /calvin klein/i.test(t), "Aisha");
+      assign(t => /laura ashley/i.test(t), newPerson);
+      assign(t => /^perfume \(ted baker\)/i.test(t), "Ammi");
+      assign(t => /ted baker/i.test(t) && /gift set/i.test(t), "Anusha");
+      assign(t => /missguided/i.test(t), "Kashaf (Amber Baji's daughter)");
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
