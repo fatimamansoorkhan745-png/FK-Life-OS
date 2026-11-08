@@ -1643,6 +1643,18 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026: a Next "Just Pink" beauty box, ordered (once per browser, not twice)
+  (function seedJustPinkBoxNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-just-pink-box';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /just pink/i.test(pu.text) && pu.amount === 14)){
+        ks.purchases.unshift({id: newId('buy'), text: "Just Pink beauty box (Next) — ordered", amount: 14, forWhom: "", date: "2026-11-08"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
