@@ -1683,6 +1683,35 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026, from screenshots of her orders: exact prices for five purchases she'd given
+  // rounded (each corrected only while it still has the rounded price, so a price she's changed
+  // herself is kept), and six new purchases (each added once).
+  (function seedOrdersCheckNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-orders-check';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      const fix = (test, oldAmount, newAmount, newText)=>{
+        const pu = ks.purchases.find(p => test(p.text) && p.amount === oldAmount);
+        if(pu){ pu.amount = newAmount; if(newText) pu.text = newText; }
+      };
+      fix(t => /jumper/i.test(t), 10, 9.29);
+      fix(t => /laura ashley/i.test(t), 14, 13.49);
+      fix(t => /calvin klein/i.test(t), 15, 14.54, "Women's perfume, Contradiction 100ml (Calvin Klein)");
+      fix(t => /tommy hilfiger/i.test(t) && /t-shirt/i.test(t), 13, 13.49, "T-shirt, crew neck, XXL (Tommy Hilfiger)");
+      fix(t => /ted baker/i.test(t) && /gift set/i.test(t), 8, 8.44, "Perfume gift set, purple (Ted Baker)");
+      const add = (test, text, amount)=>{
+        if(!ks.purchases.some(p => test(p.text))) ks.purchases.unshift({id: newId('buy'), text, amount, forWhom: "", date: "2026-11-08"});
+      };
+      add(t => /wash bag/i.test(t), "Wash bag (Ted Baker)", 3.71);
+      add(t => /paper bags?/i.test(t), "2 gift bags (Tommy Hilfiger paper bags)", 3.76);
+      add(t => /boss/i.test(t) && /polo/i.test(t), "Men's polo top (Boss)", 18.74);
+      add(t => /boss/i.test(t) && /t-shirt/i.test(t), "T-shirt (Boss)", 17.69);
+      add(t => /summer sun/i.test(t), "Summer Sun perfume (Next)", 7.39);
+      add(t => /tommy girl/i.test(t), "Tommy Girl perfume set", 13.69);
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
