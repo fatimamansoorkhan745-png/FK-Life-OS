@@ -1655,6 +1655,22 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 8 Nov 2026: a Laura Ashley silver watch and a Calvin Klein women's perfume (once per
+  // browser; neither added twice). The Ted Baker t-shirt she also bought waits for its price.
+  (function seedWatchPerfumeNov8(){
+    const FLAG = STORE_KEY + ':seed-2026-11-08-watch-perfume';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(pu => /laura ashley/i.test(pu.text) && pu.amount === 14)){
+        ks.purchases.unshift({id: newId('buy'), text: "Silver watch (Laura Ashley)", amount: 14, forWhom: "", date: "2026-11-08"});
+      }
+      if(!ks.purchases.some(pu => /calvin klein/i.test(pu.text) && pu.amount === 15)){
+        ks.purchases.unshift({id: newId('buy'), text: "Women's perfume (Calvin Klein)", amount: 15, forWhom: "", date: "2026-11-08"});
+      }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
