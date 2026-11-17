@@ -532,7 +532,10 @@
   }
   .list-category.person .task-list:empty{ display:none; }
   .list-category.person .add-row{ margin:10px 0 0; }
-  #karachiListsWrap .collapse-head h2{ color:var(--accent-dark); }
+  #karachiListsWrap .collapse-head h2, #packListsWrap .collapse-head h2{ color:var(--accent-dark); }
+  .allowance-grid{ display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:10px; margin-top:8px; }
+  .allowance{ background:var(--accent-soft); border-radius:14px; padding:12px 14px; font-size:.86rem; color:var(--ink); line-height:1.6; }
+  .allowance-who{ font-weight:700; color:var(--accent-dark); font-size:.95rem; margin-bottom:2px; }
   .spend-summary{ display:flex; justify-content:space-between; align-items:baseline; gap:10px; flex-wrap:wrap; margin:8px 0 6px; color:var(--muted); font-size:.9rem; }
   .spend-big{ font-size:1.5rem; font-weight:700; color:var(--accent-dark); }
   .spend-left{ font-weight:700; color:var(--sold); }
@@ -660,6 +663,7 @@
   <button class="nav-btn" data-target="study">Study</button>
   <button class="nav-btn" data-target="calendar">Calendar</button>
   <button class="nav-btn" data-target="karachi">Karachi Trip</button>
+  <button class="nav-btn" data-target="packing">Karachi Packing</button>
   <button class="nav-btn" data-target="more">More</button>
   <div class="save-status" id="saveStatus"></div>
   <div class="backup-box">
@@ -809,9 +813,22 @@
 
   <section id="karachi">
     <h1>Karachi Trip</h1>
-    <div class="sub">Gift options for everyone in Karachi, and a checklist of what to take — tick things off as they go in the suitcase.</div>
+    <div class="sub">Gift options for everyone in Karachi, and what's been spent on them. Packing is in its own tab, Karachi Packing.</div>
     <div id="karachiSpendWrap"></div>
     <div id="karachiListsWrap"></div>
+  </section>
+
+  <section id="packing">
+    <h1>Karachi Packing</h1>
+    <div class="sub">What to take with you and Abdullah — tick things off as they go in the suitcase — and the things you'll need in Karachi, to order on Daraz from here.</div>
+    <div class="card allowance-card">
+      <h2>Luggage allowance</h2>
+      <div class="allowance-grid">
+        <div class="allowance"><div class="allowance-who">Me</div><div><strong>30 kg</strong> checked luggage</div><div><strong>7 kg</strong> hand carry</div></div>
+        <div class="allowance"><div class="allowance-who">Abdullah</div><div><strong>10 kg</strong> checked luggage</div><div><strong>5 kg</strong> hand carry</div></div>
+      </div>
+    </div>
+    <div id="packListsWrap"></div>
   </section>
 
   <section id="more">
@@ -1115,7 +1132,8 @@
     return [
       scheduleListV6(),
       giftsListV7(),
-      ...karachiListsV8(),
+      ...karachiListsV8().filter(l => l.sectionLabel === 'person'),
+      ...packListsV9([]),
       {id:newId('list'), title:"Foods Abdullah Likes", calendarButtons:false, categories:[
         {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
       ]},
@@ -1147,7 +1165,7 @@
   }
   // v2 = added the "Neighbors" list, and made sure every "Things To Buy" list has its price field —
   // both applied once to lists that already existed before those features did.
-  const MORE_LISTS_SEED_VERSION = 8;
+  const MORE_LISTS_SEED_VERSION = 9;
   const PRICE_FIELD_LIST_TITLES = ["Things To Buy — Home", "Things To Buy — Abdullah", "Things To Buy — Fatima", "Things To Buy — Husband"];
   function seedMoreListsV2(merged){
     const hasNeighbors = merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === "neighbors");
@@ -1257,6 +1275,27 @@
       const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
       sec.items.forEach(text=>{ if(!existing.has(text.toLowerCase())) cat.items.push({text, done:false, price:''}); });
     });
+  }
+
+  // v9 = the Karachi Packing tab: what to take, split into Me and Abdullah, and a list of things
+  // needed in Karachi, to order on Daraz from the UK. The packing list that was in the Karachi Trip
+  // tab moves here, its items going under Me.
+  function packListsV9(myItems){
+    return [
+      {id:newId('list'), title:"Things to take with me", tab:'pack', calendarButtons:false, priceField:false, categories:[
+        {name:"Me", items: myItems || []}, {name:"Abdullah", items:[]}
+      ]},
+      {id:newId('list'), title:"Things I need in Karachi — to order on Daraz", tab:'pack', calendarButtons:false, priceField:true, categories:[
+        {name:'', items:[]}
+      ]}
+    ];
+  }
+  function seedMoreListsV9(merged){
+    if(merged.moreLists.some(l => l.tab === 'pack')) return;
+    const old = merged.moreLists.find(l => l.tab === 'karachi' && l.sectionLabel !== 'person');
+    const myItems = old ? old.categories.reduce((all, c) => all.concat(c.items), []) : [];
+    if(old) merged.moreLists.splice(merged.moreLists.indexOf(old), 1);
+    merged.moreLists.push(...packListsV9(myItems));
   }
 
   // v8 = the Karachi Trip tab's two lists: gifts (a section per person, with prices) and a packing
@@ -1977,7 +2016,7 @@
         id: safeId(l.id, 'list'),
         title: l.title,
         calendarButtons: !!l.calendarButtons,
-        tab: l.tab === 'karachi' ? 'karachi' : '',
+        tab: (l.tab === 'karachi' || l.tab === 'pack') ? l.tab : '',
         priceField: !!l.priceField,
         sectionLabel: l.sectionLabel === 'person' ? 'person' : '',
         categories: (Array.isArray(l.categories) && (l.categories.length || l.sectionLabel === 'person') ? l.categories : [{name:'', items:[]}]).map(c => ({
@@ -2007,6 +2046,9 @@
     }
     if(priorMoreListsSeed < 8){
       seedMoreListsV8(merged);
+    }
+    if(priorMoreListsSeed < 9){
+      seedMoreListsV9(merged);
     }
     merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
     if(saved.study && Array.isArray(saved.study.topics)){
@@ -3808,6 +3850,7 @@
     renderListGroup(document.getElementById('moreListsWrap'), data.moreLists.filter(l => !l.tab),
       '<p class="empty">No lists yet — add one below.</p>');
     renderListGroup(document.getElementById('karachiListsWrap'), data.moreLists.filter(l => l.tab === 'karachi'), '');
+    renderListGroup(document.getElementById('packListsWrap'), data.moreLists.filter(l => l.tab === 'pack'), '');
   }
   function renderListGroup(wrap, lists, emptyHtml){
     const openIds = new Set();
@@ -3833,7 +3876,7 @@
         if(cat.name) bodyHtml += `<div class="section-head"><h3>${isPeople ? '🎁 ' : ''}${escapeHtml(cat.name)}</h3><button class="section-remove" data-remove-section-list="${list.id}" data-remove-section-cat="${ci}" title="Remove ${isPeople ? 'this person' : 'this section'}">Remove</button></div>`;
         const addRow = `
           <div class="add-row${list.priceField ? ' with-price' : ''}">
-            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `${list.tab ? 'Gift option' : 'Gift idea'} for ${escapeAttr(cat.name)}...` : list.tab ? 'Something to take...' : 'Add an item...'}"></textarea>
+            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `${list.tab ? 'Gift option' : 'Gift idea'} for ${escapeAttr(cat.name)}...` : list.tab === 'pack' && /daraz/i.test(list.title) ? 'Something to order...' : list.tab ? 'Something to take...' : 'Add an item...'}"></textarea>
             ${list.priceField ? `<input type="text" class="list-item-price-input" data-list="${list.id}" data-cat="${ci}" placeholder="Price">` : ''}
             <button class="list-item-add-btn" data-list="${list.id}" data-cat="${ci}">Add</button>
             ${isPeople ? `<button class="add-done-btn" data-close-add="1">Done</button>` : ''}
