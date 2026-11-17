@@ -1786,6 +1786,27 @@
       localStorage.setItem(FLAG, '1');
     }catch(e){}
   })();
+  // Added 17 Nov 2026: Umer Bhai's Gucci perfume (£25), which also ticks off the perfume still to
+  // buy for him, and a women's Hugo Boss perfume (£14). Each added once, and not if she's
+  // already typed it in herself.
+  (function seedGucciHugoBossNov17(){
+    const FLAG = STORE_KEY + ':seed-2026-11-17-gucci-hugo-boss';
+    try{
+      if(localStorage.getItem(FLAG)) return;
+      const ks = data.karachiSpend;
+      if(!ks.purchases.some(p => /gucci/i.test(p.text))){
+        ks.purchases.unshift({id: newId('buy'), text: "Perfume (Gucci)", amount: 25, forWhom: "Umer Bhai", date: "2026-11-17"});
+      }
+      if(!ks.purchases.some(p => /boss/i.test(p.text) && /perfume/i.test(p.text))){
+        ks.purchases.unshift({id: newId('buy'), text: "Women's perfume (Hugo Boss)", amount: 14, forWhom: "", date: "2026-11-17"});
+      }
+      const people = data.moreLists.find(l => l.tab === 'karachi' && l.sectionLabel === 'person');
+      const umer = people && people.categories.find(c => (c.name || '').trim().toLowerCase() === 'umer bhai');
+      const toBuy = umer && umer.items.find(it => /perfume \(still to buy\)/i.test(it.text || ''));
+      if(toBuy){ toBuy.text = "Perfume — bought: Gucci"; toBuy.price = "£25"; toBuy.done = true; }
+      localStorage.setItem(FLAG, '1');
+    }catch(e){}
+  })();
   writeNow(); // straight away at start-up, so the storage meter shows at once
 
   function load(){
