@@ -1134,6 +1134,7 @@
       giftsListV7(),
       ...karachiListsV8().filter(l => l.sectionLabel === 'person'),
       ...packListsV9([]),
+      vintedListV10(),
       {id:newId('list'), title:"Foods Abdullah Likes", calendarButtons:false, categories:[
         {name:"Breakfast", items:[]}, {name:"Lunch", items:[]}, {name:"Dinner", items:[]}
       ]},
@@ -1165,7 +1166,7 @@
   }
   // v2 = added the "Neighbors" list, and made sure every "Things To Buy" list has its price field —
   // both applied once to lists that already existed before those features did.
-  const MORE_LISTS_SEED_VERSION = 9;
+  const MORE_LISTS_SEED_VERSION = 10;
   const PRICE_FIELD_LIST_TITLES = ["Things To Buy — Home", "Things To Buy — Abdullah", "Things To Buy — Fatima", "Things To Buy — Husband"];
   function seedMoreListsV2(merged){
     const hasNeighbors = merged.moreLists.some(l => (l.title||"").trim().toLowerCase() === "neighbors");
@@ -1275,6 +1276,23 @@
       const existing = new Set(cat.items.map(it => (it.text||"").trim().toLowerCase()));
       sec.items.forEach(text=>{ if(!existing.has(text.toLowerCase())) cat.items.push({text, done:false, price:''}); });
     });
+  }
+
+  // v10 = a "To buy on Vinted" list in the Karachi Packing tab, after the Daraz list, with a price
+  // box on each item and the first three things she gave
+  const VINTED_LIST_TITLE = "To buy on Vinted";
+  function vintedListV10(){
+    return {id:newId('list'), title:VINTED_LIST_TITLE, tab:'pack', calendarButtons:false, priceField:true, categories:[
+      {name:'', items:[
+        {text:"Perfume (women's)", done:false, price:''},
+        {text:"Abdullah's suit", done:false, price:''},
+        {text:"Makeup bag", done:false, price:''}
+      ]}
+    ]};
+  }
+  function seedMoreListsV10(merged){
+    if(merged.moreLists.some(l => (l.title || '').trim().toLowerCase() === VINTED_LIST_TITLE.toLowerCase())) return;
+    merged.moreLists.push(vintedListV10());
   }
 
   // v9 = the Karachi Packing tab: what to take, split into Me and Abdullah, and a list of things
@@ -2049,6 +2067,9 @@
     }
     if(priorMoreListsSeed < 9){
       seedMoreListsV9(merged);
+    }
+    if(priorMoreListsSeed < 10){
+      seedMoreListsV10(merged);
     }
     merged.moreListsSeedVersion = MORE_LISTS_SEED_VERSION;
     if(saved.study && Array.isArray(saved.study.topics)){
@@ -3876,7 +3897,7 @@
         if(cat.name) bodyHtml += `<div class="section-head"><h3>${isPeople ? '🎁 ' : ''}${escapeHtml(cat.name)}</h3><button class="section-remove" data-remove-section-list="${list.id}" data-remove-section-cat="${ci}" title="Remove ${isPeople ? 'this person' : 'this section'}">Remove</button></div>`;
         const addRow = `
           <div class="add-row${list.priceField ? ' with-price' : ''}">
-            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `${list.tab ? 'Gift option' : 'Gift idea'} for ${escapeAttr(cat.name)}...` : list.tab === 'pack' && /daraz/i.test(list.title) ? 'Something to order...' : list.tab ? 'Something to take...' : 'Add an item...'}"></textarea>
+            <textarea rows="1" class="list-item-input" data-list="${list.id}" data-cat="${ci}" placeholder="${isPeople ? `${list.tab ? 'Gift option' : 'Gift idea'} for ${escapeAttr(cat.name)}...` : list.tab === 'pack' && /daraz|vinted/i.test(list.title) ? 'Something to buy...' : list.tab ? 'Something to take...' : 'Add an item...'}"></textarea>
             ${list.priceField ? `<input type="text" class="list-item-price-input" data-list="${list.id}" data-cat="${ci}" placeholder="Price">` : ''}
             <button class="list-item-add-btn" data-list="${list.id}" data-cat="${ci}">Add</button>
             ${isPeople ? `<button class="add-done-btn" data-close-add="1">Done</button>` : ''}
